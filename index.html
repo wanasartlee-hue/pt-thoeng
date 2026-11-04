@@ -181,12 +181,13 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
 .paper .sg>span{white-space:nowrap}
 .paper .sg .c2{grid-column:2;text-align:center;white-space:normal}
 .paper .sig.one .sg{width:66%}
-.paper .sgxw{display:grid;gap:16px;margin-top:22px;break-inside:avoid;page-break-inside:avoid}
-.paper .sgx .r1{display:flex;align-items:flex-end;gap:4px}
-.paper .sgx .lbl{flex:none}
-.paper .sgx .dl{flex:none;width:190px;border-bottom:1.5px dotted #000;height:.75em;margin-bottom:.22em}
-.paper .sgx .role{flex:1 1 auto;min-width:0}
-.paper .sgx .r2{width:340px;text-align:center}
+.paper .sgxw{display:grid;gap:16px;margin-top:22px;padding-left:12%;break-inside:avoid;page-break-inside:avoid}
+.paper .sgx{display:grid;grid-template-columns:auto 280px auto;column-gap:4px;align-items:end;justify-content:start}
+.paper .sgx .lbl,.paper .sgx .role{white-space:nowrap}
+.paper .sgx .dl{grid-column:2;border-bottom:1.5px dotted #000;height:.75em;margin-bottom:.22em}
+.paper .sgx .r2{grid-column:2;justify-self:center;text-align:center;white-space:nowrap}
+.paper .cmt{padding-left:12%;margin-top:20px;break-inside:avoid;page-break-inside:avoid}
+.paper .cmt .cl{border-bottom:1.5px dotted #000;min-height:1.35em;margin-top:2px;width:86%}
 .paper .note{font-size:17px;margin-top:10px;background:none;color:#000;padding:0;border-radius:0}
 .paper .avoid{page-break-inside:avoid}
 .paper h4{margin:7px 0 0;font-size:21px;font-weight:700}
@@ -908,7 +909,7 @@ function tabSettings(){
   const o=st.org,T=$('#tabbody');
   T.innerHTML=`<form class="sheet stack" id="sform" style="max-width:720px"><h2>ข้อมูลหน่วยงาน (ใช้บนหัวเอกสารและใบรับรอง)</h2><div class="grid g2">
   ${inp('name','ชื่อหน่วยงาน',`value="${esc(o.name)}"`)}${inp('short','ชื่อย่อ',`value="${esc(o.short)}"`)}${inp('district','อำเภอ',`value="${esc(o.district)}"`)}${inp('province','จังหวัด',`value="${esc(o.province)}"`)}
-  ${inp('director','ชื่อผู้อำนวยการ (ลงนามใบรับรอง)',`value="${esc(o.director)}"`)}${inp('directorPos','ตำแหน่งผู้อำนวยการ (ใต้ลายมือชื่อ)',`value="${esc(o.directorPos||'')}" placeholder="ผู้อำนวยการ${esc(o.name)}"`)}${inp('registrar','ชื่อหัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง (ลงนามใบรับรอง)',`value="${esc(o.registrar)}"`)}
+  ${inp('director','ชื่อผู้อำนวยการ (ลงนามใบรับรอง)',`value="${esc(o.director)}"`)}${inp('directorPos','ตำแหน่งผู้อำนวยการ (ใต้ลายมือชื่อ)',`value="${esc(o.directorPos||'')}" placeholder="ผู้อำนวยการ${esc(o.name)}"`)}${inp('registrar','ชื่อหัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง (ลงนามใบรับรอง และเจ้าหน้าที่ที่รับผิดชอบใน พต.13)',`value="${esc(o.registrar)}"`)}
   <label class="f wide">โลโก้หน่วยงาน (PNG/JPG)<input type="file" accept="image/*" id="logo"></label></div>
   <div class="row"><div class="seal" style="width:64px;height:64px" id="logoprev">${o.logo?`<img alt="" src="${esc(o.logo)}">`:'สกร.'}</div>${o.logo?'<button class="btn ghost sm" type="button" id="logo-x">นำโลโก้ออก</button>':''}</div>
   <h3 style="margin-top:6px">ลายเซ็นบนใบรับรอง (พต.14)</h3>
@@ -949,7 +950,7 @@ function crossTable(title,cats,keyFn,R){
   return `<div class="avoid"><h4>${title}</h4><table class="small"><tr><th rowspan="2">รายการ/เพศ</th>${cats.map(x=>`<th colspan="2">${esc(x)}</th>`).join('')}<th colspan="2">รวม</th><th rowspan="2">รวมทั้งสิ้น</th></tr><tr>${cats.map(()=>'<th>ช</th><th>ญ</th>').join('')}<th>ช</th><th>ญ</th></tr>${row('จำนวนผู้เข้ารับการฝึกอบรม',R.apps)}${row('จำนวนผู้ผ่านการฝึกอบรม',R.passed)}</table></div>`;
 }
 const ageBand=c=>a=>{const g=num(ageOf(a,c.startDate));return g<15?'ต่ำกว่า 15 ปี':g<40?'15 - 39 ปี':g<60?'40 - 59 ปี':'60 ปีขึ้นไป'};
-const sigRow=(role,name,pos)=>`<div class="sgx"><div class="r1"><span class="lbl">(ลงชื่อ)</span><span class="dl"></span><span class="role">${role}</span></div><div class="r2">(${esc(name)||'......................................'})</div><div class="r2">ตำแหน่ง ${esc(pos)||'......................................'}</div></div>`;
+const sigRow=(role,name,pos)=>`<div class="sgx"><span class="lbl">(ลงชื่อ)</span><span class="dl"></span><span class="role">${role}</span><span class="r2">(${esc(name)||'......................................'})</span><span class="r2">ตำแหน่ง ${esc(pos)||'......................................'}</span></div>`;
 const sigBlock=(role,name,...extra)=>`<div class="sg"><span>(ลงชื่อ)</span><span class="dl"></span><span>${role}</span><span class="c2">(${esc(name)||'......................................'})</span>${extra.map(x=>`<span class="c2">${x}</span>`).join('')}</div>`;
 const courseHead=c=>ln('โครงการ/หลักสูตร',[c.name])+ln('จำนวน',[c.hours,90],'ชั่วโมง')+ln('ระหว่างวันที่',[thDate(c.startDate)+(c.endDate?' ถึง '+thDate(c.endDate):'')])+ln('สถานที่จัด ณ',[c.place&&c.place.includes(cname(c.center))?c.place:[c.place,cname(c.center)].filter(Boolean).join(' ')]);
 
@@ -1037,8 +1038,8 @@ const DOCS={
   <p>11.3 ผู้ผ่านการฝึกอบรมได้นำความรู้ไปใช้จริง</p><p style="padding-left:18px">${USE.slice(0,8).map(u=>`${CB(uc(u)>0,u)} ${D(uc(u)||'-',24)} คน`).join(' ')}</p>
   <p>11.4 ผู้ผ่านการฝึกอบรมมีรายได้เฉลี่ยเพิ่มขึ้น/เดือน</p><p style="padding-left:18px">${INCOME.map(v=>`${CB(ic(v)>0,'รายได้ '+v)} ${D(ic(v)||'-',24)} คน`).join('<br>')}</p></div>
   <div class="avoid"><h4>12. ปัญหา อุปสรรค และข้อเสนอแนะ</h4><p>12.1 ปัญหา อุปสรรค ${CB(!r.problems,'ไม่มี')} ${CB(!!r.problems,'มี')} ${D(r.problems,360)}</p><p>12.2 ข้อเสนอแนะ ${D(r.suggest||'-',480)}</p>
-  <div class="sgxw">${sigRow('ผู้จัดการเรียนรู้',teacherOf(c.center),teacherPosOf(c.center))}${sigRow('หัวหน้างานการเรียนรู้เพื่อคุณวุฒิตามระดับ',ap.supervisor?ap.supervisor.by:'',ap.supervisor?(ap.supervisor.pos||jobOf(st.staff.find(x=>`${x.title||''}${x.first||''} ${x.last||''}`.trim()===ap.supervisor.by))||''):'หัวหน้างานการเรียนรู้เพื่อคุณวุฒิตามระดับ')}</div>
-  <p class="ctr" style="margin-top:18px"><b>ข้อคิดเห็นผู้บริหารสถานศึกษา</b></p><p class="ctr">${esc(ap.comment)||'.............................................................................................................'}</p>
+  <div class="sgxw">${sigRow('ผู้จัดการเรียนรู้',teacherOf(c.center),teacherPosOf(c.center))}${sigRow('เจ้าหน้าที่ที่รับผิดชอบ',st.org.registrar,'หัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง')}</div>
+  <div class="cmt"><b>ข้อคิดเห็นผู้บริหารสถานศึกษา</b><div class="cl">${esc(ap.comment)||'&nbsp;'}</div>${ap.comment?'':'<div class="cl">&nbsp;</div>'}</div>
   <div class="sgxw">${sigRow('ผู้บริหารสถานศึกษา',st.org.director,directorPos())}</div></div>`},
  pt14:({c,list})=>certPages(list.map(({a,i})=>certItem(c,a,i))),
  pt14pub:items=>certPages(items),
