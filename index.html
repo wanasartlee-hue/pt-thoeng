@@ -87,11 +87,11 @@ legend{font-family:var(--f-display);color:var(--plum);font-size:15.5px;padding:0
 .note{font-size:13px;color:var(--muted);background:var(--mist);border-radius:8px;padding:8px 12px}
 @media (max-width:560px){.formhead h2{padding:22px 0 0}}
 .coursecard{background:var(--butter);border:1px solid #f0d98a;border-radius:var(--r);padding:12px 14px;display:grid;gap:2px;font-size:14px}
-.tabs{display:flex;gap:2px;overflow-x:auto;border-bottom:2px solid var(--line);margin-bottom:16px}
+.tabs{position:relative;display:flex;gap:2px;overflow-x:auto;scroll-behavior:auto;border-bottom:2px solid var(--line);margin-bottom:16px}
 .tabs button{font:inherit;border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tabs button.on{color:var(--plum);border-bottom-color:var(--gold)}
 .tabs button{position:relative}
-.tabs button+button::before{content:"";position:absolute;left:-1px;top:22%;height:56%;width:1px;background:var(--line)}
+.tabs button+button::before{content:"";position:absolute;left:-1px;top:20%;height:60%;width:2px;border-radius:2px;background:var(--gold)}
 .pw{position:relative;display:block}
 .pw input{padding-right:46px}
 .pw button{position:absolute;right:4px;top:50%;transform:translateY(-50%);border:0;background:none;color:var(--muted);cursor:pointer;padding:6px;border-radius:6px;display:grid;place-items:center}
@@ -546,6 +546,7 @@ async function renderStaff(){
   if(!st.staffLoaded){$('#app').innerHTML='<div class="empty">กำลังโหลดข้อมูลบุคลากรและผู้เรียน…</div>';try{await loadStaffData();st.staffLoaded=true}catch(e){$('#app').innerHTML='<div class="empty">โหลดข้อมูลไม่สำเร็จ</div>';return}}
   startWatch();
   const me=st.me,tabs=[['inbox',inboxLabel()],['courses','หลักสูตร & งบประมาณ'],['pt8','พต.8 รายชื่อผู้สมัคร'],['pt9','พต.9 ลงเวลา'],['pt10','พต.10 ประเมินผล'],['pt13','พต.13 รายงาน & อนุมัติ'],['pt14','พต.14 ใบรับรอง'],['forms','พต.1 / 12 / 20']];
+  const prevTabScroll=$('.tabs')?$('.tabs').scrollLeft:(st.tabScroll||0);
   if(isAll())tabs.push(['overview','ภาพรวมปีงบประมาณ']);
   if(me.role==='admin')tabs.push(['users','ผู้ใช้งาน'],['settings','ตั้งค่า']);
   $('#app').innerHTML=`${demoBanner()}
@@ -556,6 +557,11 @@ async function renderStaff(){
    <button class="btn ghost sm" id="s-refresh" type="button">รีเฟรชข้อมูล</button><button class="btn ghost sm" id="s-out" type="button">ออกจากระบบ</button></div>
   <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" data-tab="${k}" class="${st.tab===k?'on':''}">${l}</button>`).join('')}</div>
   <div id="tabbody"></div>`;
+  { // keep the tab bar where it was, and bring the active tab into view
+    const tb=$('.tabs');tb.scrollLeft=prevTabScroll;const on=tb.querySelector('.on');
+    if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<tb.scrollLeft)tb.scrollLeft=Math.max(0,l-12);else if(r>tb.scrollLeft+tb.clientWidth)tb.scrollLeft=r-tb.clientWidth+12}
+    st.tabScroll=tb.scrollLeft;tb.addEventListener('scroll',()=>{st.tabScroll=tb.scrollLeft},{passive:true});
+  }
   $$('.tabs button').forEach(b=>b.onclick=async()=>{st.tab=b.dataset.tab;st.editCourse=null;st.editUser=null;if(st.tab==='inbox'){try{await loadStaffData()}catch(e){}}renderStaff()});
   $('#s-out').onclick=async()=>{stopWatch();await S.signOut();st.me=null;st.staffLoaded=false;try{sessionStorage.removeItem('pt-me')}catch(e){}renderStaff()};
   $('#s-refresh').onclick=async()=>{await loadPublic();await loadStaffData();toast('อัปเดตข้อมูลล่าสุดแล้ว');renderStaff()};
