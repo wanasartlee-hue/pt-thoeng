@@ -181,6 +181,12 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
 .paper .sg>span{white-space:nowrap}
 .paper .sg .c2{grid-column:2;text-align:center;white-space:normal}
 .paper .sig.one .sg{width:66%}
+.paper .sgxw{display:grid;gap:16px;margin-top:22px;break-inside:avoid;page-break-inside:avoid}
+.paper .sgx .r1{display:flex;align-items:flex-end;gap:4px}
+.paper .sgx .lbl{flex:none}
+.paper .sgx .dl{flex:none;width:190px;border-bottom:1.5px dotted #000;height:.75em;margin-bottom:.22em}
+.paper .sgx .role{flex:1 1 auto;min-width:0}
+.paper .sgx .r2{width:340px;text-align:center}
 .paper .note{font-size:17px;margin-top:10px;background:none;color:#000;padding:0;border-radius:0}
 .paper .avoid{page-break-inside:avoid}
 .paper h4{margin:7px 0 0;font-size:21px;font-weight:700}
@@ -199,7 +205,9 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
 .cert .sigs{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:24px;width:100%;font-size:22px}
 .cert .sigs span{white-space:nowrap}
 .cert .sigs div{display:grid;gap:0}
-.cert .line{border-bottom:1px dotted #2a1648;height:44px;margin:0 30px 4px}
+.cert .line{border-bottom:1px dotted #2a1648;height:50px;margin:0 30px 4px;position:relative}
+.cert .line img{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);max-height:74px;max-width:88%;object-fit:contain}
+.cert .txt{line-height:1.35}
 /* print: only the open document, laid out exactly like the PDF */
 @media print{
   html,body{background:#fff!important}
@@ -255,6 +263,10 @@ const D=(v,w)=>`<span class="d" style="min-width:${w||60}px">${esc(v)||'&nbsp;'}
 const CB=(on,label)=>`<span style="white-space:nowrap"><span class="cb${on?' on':''}"></span>${esc(label)}</span> `;
 const cname=s=>String(s||'').replace(/\s*\(ครู[^)]*\)\s*$/,'').trim();
 const thFull=t=>t?new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'}):'';
+const teacherPosOf=c=>(st.cpos||{})[c]||('ครู '+cname(c));
+const defaultJob=s=>s.role==='teacher'?('ครู '+cname(s.center||'')):s.role==='supervisor'?'หัวหน้างานการเรียนรู้เพื่อคุณวุฒิตามระดับ':'';
+const jobOf=s=>(s&&(s.jobTitle||defaultJob(s)))||'';
+const directorPos=()=>st.org.directorPos||('ผู้อำนวยการ'+st.org.name);
 const teacherOf=c=>(st.cteach||{})[c]||((String(c||'').match(/\((ครู[^)]*)\)/)||[])[1])||cname(c);
 const fullName=a=>`${a.title||''}${a.first||''} ${a.last||''}`.trim();
 const sexOf=a=>a.title==='นาย'?'m':'f';
@@ -398,7 +410,7 @@ const can=r=>st.me&&(st.me.role==='admin'||st.me.role===r);
 async function loadPublic(){
   const [c,o,cs,y]=await Promise.all([S.get('meta/centers'),S.get('meta/org'),S.list('courses'),S.get('meta/years').catch(()=>null)]);
   if(y&&Array.isArray(y.list)&&y.list.length)st.years={list:y.list.map(String).sort(),current:String(y.current||y.list[y.list.length-1])};if(!st.fy||!st.years.list.includes(st.fy))st.fy=st.years.current;
-  st.centers=(c&&c.list)||[];st.cteach=(c&&c.teachers)||{};st.org={...ORG_DEFAULT,...(o||{})};st.courses=cs.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+  st.centers=(c&&c.list)||[];st.cteach=(c&&c.teachers)||{};st.cpos=(c&&c.positions)||{};st.org={...ORG_DEFAULT,...(o||{})};st.courses=cs.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
   $('#orgline').textContent=`${st.org.name} จังหวัด${st.org.province}`;
   $('#seal').innerHTML=st.org.logo?`<img alt="" src="${esc(st.org.logo)}">`:'สกร.';
 }
@@ -469,7 +481,7 @@ const FORMS={pt1:{no:'พต. 1',t:'แบบสำรวจความต้�
 
 /* ================= LEARNER PAGE ================= */
 const learnerTabs=()=>{const L=st.lc;return `<div class="formtabs" role="tablist">${Object.entries(FORMS).map(([k,f])=>`<button type="button" role="tab" data-form="${k}" class="${k===L.form?'on':''}" aria-selected="${k===L.form}"><b>แบบ ${f.no}</b>${f.t}</button>`).join('')}<button type="button" role="tab" data-form="cert" class="${L.form==='cert'?'on':''}" aria-selected="${L.form==='cert'}"><b>วุฒิบัตร</b>ค้นหาใบรับรองของฉัน</button></div>`};
-function certItem(c,a,i){return{name:fullName(a),certNo:certNo(c,i),course:c.name,hours:c.hours,startDate:c.startDate,endDate:c.endDate||c.startDate,center:cname(c.center)}}
+function certItem(c,a,i){const cn=cname(c.center),pl=c.place?(c.place.includes(cn)?c.place:c.place+' '+cn):cn;return{name:fullName(a),certNo:certNo(c,i),course:c.name,hours:c.hours,startDate:c.startDate,endDate:c.endDate||c.startDate,center:cn,place:pl}}
 const idDigits=v=>String(v||'').replace(/\D/g,'');
 async function findCerts(d){
   if(S.mode==='fb'){const x=await S.get('certs/'+await sha('c|'+d));return x?Object.values(x.items||{}).filter(Boolean):[]}
@@ -751,7 +763,7 @@ function tabPT13(){
   const by=`${st.me.title||''}${st.me.first} ${st.me.last||''}`.trim();
   if($('#ap-t'))$('#ap-t').onclick=async()=>{const a={...ap,teacher:{by,at:Date.now()}};await S.update('courses/'+c.id,{approval:a});c.approval=a;toast('ยืนยันรายงานแล้ว รอหัวหน้างานอนุมัติ');renderStaff()};
   if($('#apf'))$('#apf').onsubmit=async e=>{e.preventDefault();const f=e.target;if(!f.checkValidity()){f.reportValidity();return}const o=readForm(f);
-    const a={...ap,supervisor:{by,at:Date.now()},comment:o.comment};const cert={prefix:o.prefix,start:num(o.start),year:o.year};
+    const a={...ap,supervisor:{by,at:Date.now(),pos:jobOf(st.staff.find(x=>x.id===st.me.id)||st.me)},comment:o.comment};const cert={prefix:o.prefix,start:num(o.start),year:o.year};
     await S.update('courses/'+c.id,{approval:a,cert,open:false});Object.assign(c,{approval:a,cert,open:false});
     try{const n=await publishCerts(c);toast(`อนุมัติแล้ว ผู้ผ่าน ${n} คนค้นหาใบรับรองได้ที่หน้าผู้เรียน`)}catch(err){toast('อนุมัติแล้ว แต่เผยแพร่ข้อมูลค้นหาใบรับรองไม่สำเร็จ ลองกดเผยแพร่ใหม่ในแท็บ พต.14')}renderStaff()};
   if($('#ap-reset'))armDelete($('#ap-reset'),async()=>{const had=!!(c.approval||{}).supervisor;await S.update('courses/'+c.id,{approval:{}});c.approval={};if(had){try{await unpublishCerts(c)}catch(e){}}toast('ยกเลิกการอนุมัติแล้ว');renderStaff()});
@@ -827,7 +839,7 @@ function tabUsers(){
   const T=$('#tabbody'),u=st.editUser;
   if(u){T.innerHTML=`<form class="sheet stack" id="uform" style="max-width:720px"><div class="row"><h2 style="flex:1">${u.id?'แก้ไขผู้ใช้งาน':'เพิ่มผู้ใช้งาน'}</h2><button class="btn ghost sm" type="button" id="u-cancel">ยกเลิก</button></div>
     <div class="grid"><label class="f">คำนำหน้า<select name="title">${['นาย','นาง','นางสาว'].map(v=>opt(v,u.title)).join('')}</select></label>${inp('first','ชื่อ (ใช้เป็นชื่อผู้ใช้)',`required value="${esc(u.first||'')}"`)}${inp('last','นามสกุล',`value="${esc(u.last||'')}"`)}
-    ${inp('phone',u.id?'เบอร์โทรใหม่ (เว้นว่างถ้าไม่เปลี่ยน)':'เบอร์โทร (ใช้เป็นรหัสผ่าน)',`inputmode="tel" ${u.id?'':'required'} placeholder="${u.ph4?'ปัจจุบันลงท้าย '+esc(u.ph4):''}"`)}${inp('email','อีเมล',`type="email" value="${esc(u.email||'')}"`)}
+    ${inp('phone',u.id?'เบอร์โทรใหม่ (เว้นว่างถ้าไม่เปลี่ยน)':'เบอร์โทร (ใช้เป็นรหัสผ่าน)',`inputmode="tel" ${u.id?'':'required'} placeholder="${u.ph4?'ปัจจุบันลงท้าย '+esc(u.ph4):''}"`)}${inp('email','อีเมล',`type="email" value="${esc(u.email||'')}"`)}${inp('jobTitle','ตำแหน่ง (แสดงใต้ลายมือชื่อในเอกสาร)',`value="${esc(u.jobTitle||'')}" placeholder="${esc(defaultJob({role:u.role||'teacher',center:u.center||''})||'เช่น ครูผู้ช่วย')}"`,'wide')}
     <label class="f">บทบาท<select name="role">${Object.entries(ROLES).map(([k,l])=>opt(k,u.role||'teacher',l)).join('')}</select></label>
     <label class="f wide">ศูนย์การเรียนรู้ (สำหรับครู)<input name="center" list="centerlist" value="${esc(u.center||'')}" placeholder="เลือกหรือพิมพ์ เช่น ศกร.ตำบลเวียง (ครูรัชฎาภรณ์)"><datalist id="centerlist">${st.centers.map(v=>`<option value="${esc(v)}">`).join('')}</datalist></label></div>
     <div class="row"><button class="btn gold" type="submit">บันทึก</button>${u.id&&u.id!==st.me.id?'<button class="btn danger" type="button" id="u-del">ลบผู้ใช้งาน</button>':''}</div></form>`;
@@ -836,7 +848,7 @@ function tabUsers(){
     $('#uform').onsubmit=async e=>{e.preventDefault();const f=e.target;if(!f.checkValidity()){f.reportValidity();return}const o=readForm(f);
       if(o.role==='teacher'&&!o.center){toast('ครูต้องระบุศูนย์การเรียนรู้');return}
       if(st.staff.some(s=>s.id!==u.id&&(s.first||'').trim()===o.first)){toast('มีผู้ใช้ชื่อนี้แล้ว ชื่อผู้ใช้ต้องไม่ซ้ำ');return}
-      const n={...u,title:o.title,first:o.first,last:o.last,email:o.email,role:o.role,center:o.role==='teacher'?o.center:(o.center||'')};
+      const n={...u,title:o.title,first:o.first,last:o.last,email:o.email,jobTitle:o.jobTitle,role:o.role,center:o.role==='teacher'?o.center:(o.center||'')};
       const digits=o.phone.replace(/\D/g,'');if(digits&&digits.length<6){toast('เบอร์โทรต้องมีอย่างน้อย 6 หลัก');return}
       if(!n.order)n.order=st.staff.length+1;
       try{const oldId=u.id,self=oldId&&oldId===st.me.id;
@@ -860,7 +872,7 @@ function tabUsers(){
   $('#u-xlsx').onchange=async e=>{const f=e.target.files[0];if(f){try{await importExcel(f)}catch(err){toast('นำเข้าไม่สำเร็จ')}}};
   $$('[data-u]').forEach(b=>b.onclick=()=>{st.editUser={...st.staff.find(s=>s.id===b.dataset.u)};renderStaff()});
 }
-async function syncCenters(){const list=[...new Set([...st.staff].sort((a,b)=>(a.order||999)-(b.order||999)).filter(s=>s.role==='teacher'&&s.center).map(s=>s.center.trim()))];const teachers={};st.staff.forEach(s=>{if(s.role==='teacher'&&s.center&&!teachers[s.center.trim()])teachers[s.center.trim()]=`${s.title||''}${s.first||''} ${s.last||''}`.trim()});await S.set('meta/centers',{list,teachers});st.centers=list;st.cteach=teachers}
+async function syncCenters(){const list=[...new Set([...st.staff].sort((a,b)=>(a.order||999)-(b.order||999)).filter(s=>s.role==='teacher'&&s.center).map(s=>s.center.trim()))];const teachers={},positions={};st.staff.forEach(s=>{const k=(s.center||'').trim();if(s.role==='teacher'&&k&&!teachers[k]){teachers[k]=`${s.title||''}${s.first||''} ${s.last||''}`.trim();positions[k]=jobOf(s)}});await S.set('meta/centers',{list,teachers,positions});st.centers=list;st.cteach=teachers;st.cpos=positions}
 function roleFromPos(p){p=String(p||'').trim();if(p==='แอดมิน')return['admin',''];if(['ผู้อำนวยการ','ครู','หัวหน้างาน'].includes(p))return['supervisor',''];return['teacher',p]}
 async function importExcel(file){
   if(!window.XLSX){toast('โหลดตัวอ่าน Excel ไม่สำเร็จ');return}
@@ -888,9 +900,12 @@ function tabSettings(){
   const o=st.org,T=$('#tabbody');
   T.innerHTML=`<form class="sheet stack" id="sform" style="max-width:720px"><h2>ข้อมูลหน่วยงาน (ใช้บนหัวเอกสารและใบรับรอง)</h2><div class="grid g2">
   ${inp('name','ชื่อหน่วยงาน',`value="${esc(o.name)}"`)}${inp('short','ชื่อย่อ',`value="${esc(o.short)}"`)}${inp('district','อำเภอ',`value="${esc(o.district)}"`)}${inp('province','จังหวัด',`value="${esc(o.province)}"`)}
-  ${inp('director','ชื่อผู้อำนวยการ (ลงนามใบรับรอง)',`value="${esc(o.director)}"`)}${inp('registrar','ชื่อนายทะเบียน',`value="${esc(o.registrar)}"`)}
+  ${inp('director','ชื่อผู้อำนวยการ (ลงนามใบรับรอง)',`value="${esc(o.director)}"`)}${inp('directorPos','ตำแหน่งผู้อำนวยการ (ใต้ลายมือชื่อ)',`value="${esc(o.directorPos||'')}" placeholder="ผู้อำนวยการ${esc(o.name)}"`)}${inp('registrar','ชื่อหัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง (ลงนามใบรับรอง)',`value="${esc(o.registrar)}"`)}
   <label class="f wide">โลโก้หน่วยงาน (PNG/JPG)<input type="file" accept="image/*" id="logo"></label></div>
   <div class="row"><div class="seal" style="width:64px;height:64px" id="logoprev">${o.logo?`<img alt="" src="${esc(o.logo)}">`:'สกร.'}</div>${o.logo?'<button class="btn ghost sm" type="button" id="logo-x">นำโลโก้ออก</button>':''}</div>
+  <h3 style="margin-top:6px">ลายเซ็นบนใบรับรอง (พต.14)</h3>
+  <p class="muted">อัปโหลดรูปลายเซ็นบนกระดาษขาว (ถ่ายรูปหรือสแกน) ระบบจะตัดพื้นขาวออกให้อัตโนมัติ ลายเซ็นจะแสดงบนใบรับรองที่ผู้เรียนค้นหาและพิมพ์ได้</p>
+  <div class="grid g2">${[['sigReg','ลายเซ็นหัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง'],['sigDir','ลายเซ็นผู้อำนวยการ']].map(([k,l])=>`<div class="stack" style="gap:6px"><label class="f">${l}<input type="file" accept="image/*" id="f-${k}"></label><div class="row" style="gap:8px"><div id="p-${k}" style="width:220px;height:80px;border:1px dashed var(--line);border-radius:8px;display:grid;place-items:center;background:#fff">${o[k]?`<img alt="" src="${esc(o[k])}" style="max-width:100%;max-height:76px">`:'<span class="muted">ยังไม่มีลายเซ็น</span>'}</div><button class="btn ghost sm" type="button" id="x-${k}">นำออก</button></div></div>`).join('')}</div>
   <div class="row"><button class="btn gold" type="submit">บันทึกการตั้งค่า</button></div></form>
   <form class="sheet stack" id="yform" style="max-width:720px;margin-top:16px"><h2>ปีงบประมาณ</h2>
   <p class="muted">เลือกปีงบประมาณปัจจุบัน (ใช้เป็นค่าเริ่มต้นเมื่อเปิดหลักสูตรใหม่และเมื่อเข้าสู่ระบบ) และเพิ่มปีใหม่ได้</p>
@@ -904,7 +919,15 @@ function tabSettings(){
   let logo=o.logo;
   $('#logo').onchange=e=>{const file=e.target.files[0];if(!file)return;const img=new Image();img.onload=()=>{const k=Math.min(1,240/Math.max(img.width,img.height));const cv=document.createElement('canvas');cv.width=Math.round(img.width*k);cv.height=Math.round(img.height*k);cv.getContext('2d').drawImage(img,0,0,cv.width,cv.height);logo=cv.toDataURL('image/png');$('#logoprev').innerHTML=`<img alt="" src="${logo}">`;URL.revokeObjectURL(img.src)};img.src=URL.createObjectURL(file)};
   if($('#logo-x'))$('#logo-x').onclick=()=>{logo='';$('#logoprev').textContent='สกร.'};
-  $('#sform').onsubmit=async e=>{e.preventDefault();const n={...readForm(e.target),logo};delete n[''];try{await S.set('meta/org',n);await loadPublic();toast('บันทึกการตั้งค่าแล้ว')}catch(err){toast('บันทึกไม่สำเร็จ')}};
+  const sigs={sigReg:o.sigReg||'',sigDir:o.sigDir||''};
+  ['sigReg','sigDir'].forEach(k=>{
+    $('#f-'+k).onchange=e=>{const file=e.target.files[0];if(!file)return;const img=new Image();img.onload=()=>{
+      const sc=Math.min(1,500/img.width,180/img.height),cv=document.createElement('canvas');cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
+      const g=cv.getContext('2d');g.drawImage(img,0,0,cv.width,cv.height);const d=g.getImageData(0,0,cv.width,cv.height),px=d.data;
+      for(let i=0;i<px.length;i+=4){const l=(px[i]+px[i+1]+px[i+2])/3;if(l>200)px[i+3]=0;else if(l>150)px[i+3]=Math.round(px[i+3]*(200-l)/50)} // white paper -> transparent
+      g.putImageData(d,0,0);sigs[k]=cv.toDataURL('image/png');$('#p-'+k).innerHTML=`<img alt="" src="${sigs[k]}" style="max-width:100%;max-height:76px">`;URL.revokeObjectURL(img.src)};img.src=URL.createObjectURL(file)};
+    $('#x-'+k).onclick=()=>{sigs[k]='';$('#p-'+k).innerHTML='<span class="muted">ยังไม่มีลายเซ็น</span>'}});
+  $('#sform').onsubmit=async e=>{e.preventDefault();const n={...readForm(e.target),logo,...sigs};delete n[''];try{await S.set('meta/org',n);await loadPublic();toast('บันทึกการตั้งค่าแล้ว')}catch(err){toast('บันทึกไม่สำเร็จ')}};
 }
 
 /* ================= DOCUMENTS (A4) ================= */
@@ -918,6 +941,7 @@ function crossTable(title,cats,keyFn,R){
   return `<div class="avoid"><h4>${title}</h4><table class="small"><tr><th rowspan="2">รายการ/เพศ</th>${cats.map(x=>`<th colspan="2">${esc(x)}</th>`).join('')}<th colspan="2">รวม</th><th rowspan="2">รวมทั้งสิ้น</th></tr><tr>${cats.map(()=>'<th>ช</th><th>ญ</th>').join('')}<th>ช</th><th>ญ</th></tr>${row('จำนวนผู้เข้ารับการฝึกอบรม',R.apps)}${row('จำนวนผู้ผ่านการฝึกอบรม',R.passed)}</table></div>`;
 }
 const ageBand=c=>a=>{const g=num(ageOf(a,c.startDate));return g<15?'ต่ำกว่า 15 ปี':g<40?'15 - 39 ปี':g<60?'40 - 59 ปี':'60 ปีขึ้นไป'};
+const sigRow=(role,name,pos)=>`<div class="sgx"><div class="r1"><span class="lbl">(ลงชื่อ)</span><span class="dl"></span><span class="role">${role}</span></div><div class="r2">(${esc(name)||'......................................'})</div><div class="r2">ตำแหน่ง ${esc(pos)||'......................................'}</div></div>`;
 const sigBlock=(role,name,...extra)=>`<div class="sg"><span>(ลงชื่อ)</span><span class="dl"></span><span>${role}</span><span class="c2">(${esc(name)||'......................................'})</span>${extra.map(x=>`<span class="c2">${x}</span>`).join('')}</div>`;
 const courseHead=c=>ln('โครงการ/หลักสูตร',[c.name])+ln('จำนวน',[c.hours,90],'ชั่วโมง')+ln('ระหว่างวันที่',[thDate(c.startDate)+(c.endDate?' ถึง '+thDate(c.endDate):'')])+ln('สถานที่จัด ณ',[c.place&&c.place.includes(cname(c.center))?c.place:[c.place,cname(c.center)].filter(Boolean).join(' ')]);
 
@@ -960,17 +984,17 @@ const DOCS={
   <div class="avoid"><h4>5. กลุ่มเป้าหมาย</h4>${opts(TARGETS.slice(0,-1),v=>d.target===v,4,[d.target==='อื่น ๆ'?(d.targetOther||' '):''])}</div>
   <div class="avoid"><h4>6. วิธีการเรียนรู้</h4>${opts(['แบบรวมกลุ่ม','แบบรายบุคคล โปรดระบุ'],v=>v.startsWith(d.method||'-'),2)}<div class="ind" style="padding-left:48px">${ln('สถานที่/ช่องทางการเรียนรู้ของตน',[d.method==='แบบรายบุคคล'?d.methodPlace:''])}${ln('ชื่อหลักสูตร',[d.method==='แบบรายบุคคล'?c.name:''])}</div></div>
   ${ln('<b>7. ท่านได้รับข่าวสารการรับสมัครจาก</b>',[d.news])}
-  <div class="sig">${sigBlock('ผู้สมัคร',fullName(d),'วันที่ '+thFull(d.at))}${sigBlock('ผู้รับสมัคร',teacherOf(d.center),'วันที่ '+thFull(d.at))}</div>
+  <div class="sig">${sigBlock('ผู้สมัคร',fullName(d),'วันที่ '+thFull(d.at))}${sigBlock('ผู้รับสมัคร',teacherOf(d.center),'ตำแหน่ง '+esc(teacherPosOf(d.center)),'วันที่ '+thFull(d.at))}</div>
   <p class="note">หมายเหตุ 1. หน่วยจัดการเรียนรู้สามารถปรับเปลี่ยนได้ตามความเหมาะสม<br>2. ในกรณีต่างด้าว ต้องมีใบอนุญาตการทำงาน (Work Permit) / หนังสือเดินทาง (passport) หรือเอกสารอื่นที่ทางราชการออกให้ จึงจะสามารถสมัครเรียนได้</p>`},
  pt8:c=>{const A=appsOf(c);return `<div class="hd"><b>แบบ พต. 8</b></div><h2>บัญชีรายชื่อผู้สมัครเรียนหลักสูตรการฝึกอบรม</h2><p class="ctr"><b>${esc(st.org.name)} จังหวัด${esc(st.org.province)}</b><br>${esc(cname(c.center))}</p>${courseHead(c)}
   <table class="rep" style="table-layout:fixed"><colgroup><col style="width:5%"><col style="width:20%"><col style="width:19%"><col style="width:6%"><col style="width:12%"><col style="width:9%"><col style="width:20%"><col style="width:9%"></colgroup><thead><tr><th>ที่</th><th>ชื่อ-สกุล</th><th>เลขบัตรประชาชน</th><th>อายุ</th><th>วุฒิการศึกษา</th><th>อาชีพ</th><th>ที่อยู่ปัจจุบัน</th><th>หมายเหตุ</th></tr></thead><tbody>
   ${A.map((a,i)=>`<tr class="avoid"><td class="c">${i+1}</td><td>${esc(fullName(a))}</td><td style="word-break:break-all">${esc(a.idcard)}</td><td class="c">${ageOf(a,c.startDate)}</td><td>${esc(a.edu)}</td><td>${esc(a.job==='อื่น ๆ'?a.jobOther||'อื่น ๆ':a.job)}</td><td>${esc(addr(a))}</td><td></td></tr>`).join('')}</tbody></table>
-  <div class="sig one">${sigBlock('ผู้รับผิดชอบโครงการ',teacherOf(c.center))}</div>`},
+  <div class="sig one">${sigBlock('ผู้รับผิดชอบโครงการ',teacherOf(c.center),'ตำแหน่ง '+esc(teacherPosOf(c.center)))}</div>`},
  pt10:c=>{const A=appsOf(c);return `<div class="hd"><b>แบบ พต. 10</b></div><h2>แบบประเมินผลการฝึกอบรม</h2>${courseHead(c)}<p>ตำบล/แขวง ${D(c.tambon,140)} อำเภอ${esc(c.amphoe||st.org.district)} จังหวัด${esc(c.province||st.org.province)}</p>
   <table class="rep"><thead><tr><th>ลำดับที่</th><th>ชื่อ – สกุล</th><th>เลขประจำตัวประชาชน</th><th>1. ความรู้ความเข้าใจในเนื้อหาสาระ (20)</th><th>2. ทักษะการปฏิบัติ (40)</th><th>3. คุณภาพของผลงาน/การปฏิบัติ (40)</th><th>4. ผลการประเมินรวม (100)</th><th>ระดับการประเมิน (ผ่าน/ไม่ผ่าน)</th></tr></thead><tbody>
   ${A.map((a,i)=>{const e=evalOf(c,a),has=e.k!=null&&e.k!=='';return `<tr class="avoid"><td class="c">${i+1}</td><td>${esc(fullName(a))}</td><td>${esc(a.idcard)}</td><td class="c">${has?esc(e.k):''}</td><td class="c">${has?esc(e.s):''}</td><td class="c">${has?esc(e.q):''}</td><td class="c">${has?e.total:''}</td><td class="c">${has?(e.pass?'ผ่าน':'ไม่ผ่าน'):''}</td></tr>`}).join('')}</tbody></table>
   <p class="note">เกณฑ์การจบหลักสูตร จะต้องได้คะแนนรวมไม่น้อยกว่าร้อยละ 60 และเข้าร่วมการฝึกอบรมไม่น้อยกว่าร้อยละ 80 ของจำนวนชั่วโมงฝึกอบรม จึงจะผ่านเกณฑ์การประเมิน</p>
-  <div class="sig">${sigBlock('วิทยากร',c.trainerName)}${sigBlock('ผู้รับผิดชอบ',teacherOf(c.center))}</div><div class="sig one" style="justify-items:center">${sigBlock('ผู้อนุมัติ',st.org.director,'ผู้อำนวยการ '+esc(st.org.short))}</div>`},
+  <div class="sig">${sigBlock('วิทยากร',c.trainerName)}${sigBlock('ผู้รับผิดชอบ',teacherOf(c.center),'ตำแหน่ง '+esc(teacherPosOf(c.center)))}</div><div class="sig one" style="justify-items:center">${sigBlock('ผู้อนุมัติ',st.org.director,'ตำแหน่ง '+esc(directorPos()))}</div>`},
  pt12s:c=>{const L=st.subs.filter(s=>s.type==='pt12'&&s.courseId===c.id);let i=0;const m=satMean(L);return `<div class="hd"><b>แบบ พต. 12</b></div><h2>สรุปผลแบบประเมินความพึงพอใจ</h2>${courseHead(c)}<p>ตำบล ${D(c.tambon,120)} อำเภอ${esc(c.amphoe||st.org.district)} จังหวัด${esc(c.province||st.org.province)} · ผู้ตอบแบบประเมิน ${L.length} คน (ชาย ${L.filter(s=>s.sex==='ชาย').length} หญิง ${L.filter(s=>s.sex==='หญิง').length})</p>
   <table><tr><th>ข้อ</th><th>รายการประเมินความพึงพอใจ</th>${LEVELS.map(([,l])=>`<th>${l}</th>`).join('')}<th>ค่าเฉลี่ย</th><th>ระดับ</th></tr>
   ${SAT.map(([h,items])=>`<tr><td colspan="9"><b>${h}</b></td></tr>`+items.map(t=>{i++;const k=i;const mm=itemMean(L,k);return `<tr class="avoid"><td class="c">${k}</td><td>${esc(t)}</td>${LEVELS.map(([v])=>`<td class="c">${L.filter(s=>num(s['r'+k])===v).length||''}</td>`).join('')}<td class="c">${mm.toFixed(2)}</td><td class="c">${satLevel(mm)}</td></tr>`}).join('')).join('')}
@@ -985,7 +1009,7 @@ const DOCS={
   <p>หลักสูตร ${D(c.name,250)} รูปแบบ ${D(c.format,100)} จำนวน ${D(c.hours,30)} ชั่วโมง</p><p>ระหว่างวันที่ ${D(thDate(c.startDate)+(c.endDate?' ถึง '+thDate(c.endDate):''),250)} ชื่อวิทยากร ${D(c.trainerName,150)}</p>
   <table class="small rep"><thead><tr><th rowspan="2">ที่</th><th rowspan="2">ชื่อ – นามสกุล (ผู้ผ่านการฝึกอบรม)</th><th colspan="${USE.length}">การนำไปใช้ประโยชน์</th><th rowspan="2">รายได้เพิ่มขึ้น/เดือน</th></tr><tr>${USE.map(u=>`<th>${esc(u)}</th>`).join('')}</tr></thead><tbody>
   ${L.map((s,i)=>`<tr class="avoid"><td>${i+1}</td><td style="text-align:left">${esc(fullName(s))}</td>${USE.map(u=>`<td>${(s.use||[]).includes(u)?'✓':''}</td>`).join('')}<td>${esc(s.income||'-')}</td></tr>`).join('')}</tbody></table>
-  <div class="sig one">${sigBlock('ผู้รายงาน',teacherOf(c.center))}</div>`},
+  <div class="sig one">${sigBlock('ผู้รายงาน',teacherOf(c.center),'ตำแหน่ง '+esc(teacherPosOf(c.center)))}</div>`},
  pt13:c=>{const R=report(c),r=c.report||{},b=c.budget||{},ap=c.approval||{},sm=new Set(c.surveyMethods||[]);const uc=u=>R.follows.filter(s=>(s.use||[]).includes(u)).length;const ic=v=>R.follows.filter(s=>s.income===v).length;
   const jobKey=a=>JOBS.includes(a.job)?a.job:'อื่น ๆ',tgKey=a=>TARGETS.includes(a.target)?a.target:'อื่น ๆ',eduKey=a=>EDU_S[EDU.indexOf(a.edu)]||'ต่ำกว่าประถม';
   return `<div class="hd"><b>แบบ พต. 13</b></div><h2>แบบรายงานผลการฝึกอบรม</h2><p class="ctr">ศูนย์การเรียนรู้ระดับตำบล ${D(cname(c.center),200)}<br><b>${esc(st.org.name)} จังหวัด${esc(st.org.province)}</b></p>
@@ -1005,18 +1029,24 @@ const DOCS={
   <p>11.3 ผู้ผ่านการฝึกอบรมได้นำความรู้ไปใช้จริง</p><p style="padding-left:18px">${USE.slice(0,8).map(u=>`${CB(uc(u)>0,u)} ${D(uc(u)||'-',24)} คน`).join(' ')}</p>
   <p>11.4 ผู้ผ่านการฝึกอบรมมีรายได้เฉลี่ยเพิ่มขึ้น/เดือน</p><p style="padding-left:18px">${INCOME.map(v=>`${CB(ic(v)>0,'รายได้ '+v)} ${D(ic(v)||'-',24)} คน`).join('<br>')}</p></div>
   <div class="avoid"><h4>12. ปัญหา อุปสรรค และข้อเสนอแนะ</h4><p>12.1 ปัญหา อุปสรรค ${CB(!r.problems,'ไม่มี')} ${CB(!!r.problems,'มี')} ${D(r.problems,360)}</p><p>12.2 ข้อเสนอแนะ ${D(r.suggest||'-',480)}</p>
-  <div class="sig">${sigBlock('ผู้รับผิดชอบ',teacherOf(c.center))}${sigBlock('เจ้าหน้าที่ที่รับผิดชอบ',ap.supervisor?ap.supervisor.by:'')}</div>
+  <div class="sgxw">${sigRow('ผู้จัดการเรียนรู้',teacherOf(c.center),teacherPosOf(c.center))}${sigRow('หัวหน้างานการเรียนรู้เพื่อคุณวุฒิตามระดับ',ap.supervisor?ap.supervisor.by:'',ap.supervisor?(ap.supervisor.pos||jobOf(st.staff.find(x=>`${x.title||''}${x.first||''} ${x.last||''}`.trim()===ap.supervisor.by))||''):'หัวหน้างานการเรียนรู้เพื่อคุณวุฒิตามระดับ')}</div>
   <p class="ctr" style="margin-top:18px"><b>ข้อคิดเห็นผู้บริหารสถานศึกษา</b></p><p class="ctr">${esc(ap.comment)||'.............................................................................................................'}</p>
-  <div class="sig one" style="justify-items:center">${sigBlock('ผู้บริหารสถานศึกษา',st.org.director)}</div></div>`},
+  <div class="sgxw">${sigRow('ผู้บริหารสถานศึกษา',st.org.director,directorPos())}</div></div>`},
  pt14:({c,list})=>certPages(list.map(({a,i})=>certItem(c,a,i))),
  pt14pub:items=>certPages(items),
  pt9a:c=>pt9Doc(c,'a'),pt9b:c=>pt9Doc(c,'b'),pt9t:c=>pt9Doc(c,'t'),
  fysum:({fy,cs})=>fySumDoc(fy,cs)
 };
+const TH_MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function certPeriod(a,b){if(!a)return 'ระหว่างวันที่ ........ เดือน ................ พ.ศ. ........';const P=x=>{const [y,m,d]=x.split('-').map(Number);return{d,m:TH_MONTHS[m-1],y:y+543}};const s=P(a),e=P(b||a);
+  if(!b||a===b)return `ระหว่างวันที่ ${s.d} เดือน ${s.m} พ.ศ. ${s.y}`;
+  if(s.m===e.m&&s.y===e.y)return `ระหว่างวันที่ ${s.d} – ${e.d} เดือน ${s.m} พ.ศ. ${s.y}`;
+  if(s.y===e.y)return `ระหว่างวันที่ ${s.d} เดือน ${s.m} ถึงวันที่ ${e.d} เดือน ${e.m} พ.ศ. ${s.y}`;
+  return `ระหว่างวันที่ ${s.d} เดือน ${s.m} พ.ศ. ${s.y} ถึงวันที่ ${e.d} เดือน ${e.m} พ.ศ. ${e.y}`}
 function certPages(items){return items.map((x,n)=>`<div class="cert"><div class="b1"></div><div class="b2"></div><div class="no">แบบ พต. 14 · เลขที่ ${esc(x.certNo)}</div>
   <div class="in"><div class="logo">${st.org.logo?`<img alt="" src="${esc(st.org.logo)}">`:'สกร.'}</div><div class="org">${esc(st.org.name)}</div><div class="lead">ใบรับรองฉบับนี้ให้ไว้เพื่อแสดงว่า</div><div class="name">${esc(x.name)}</div>
-  <div class="txt">ผ่านการฝึกอบรมหลักสูตร <b>${esc(x.course)}</b> จำนวน ${esc(x.hours)} ชั่วโมง</div><div class="txt">เมื่อวันที่ ${thDate(x.startDate)} ถึง วันที่ ${thDate(x.endDate||x.startDate)}</div><div class="txt" style="margin-top:6px">ขอให้มีความสุขความเจริญ</div>
-  <div class="sigs"><div><div class="line"></div><span>(${esc(st.org.registrar)||'......................................'})</span><span>นายทะเบียน</span></div><div><div class="line"></div><span>(${esc(st.org.director)||'......................................'})</span><span>ผู้อำนวยการ${esc(st.org.name)}</span></div></div></div></div>${n<items.length-1?'<div class="html2pdf__page-break"></div>':''}`).join('')}
+  <div class="txt">ผ่านการฝึกอบรมหลักสูตร <b>${esc(x.course)}</b> จำนวน ${esc(x.hours)} ชั่วโมง</div><div class="txt">${certPeriod(x.startDate,x.endDate)}</div><div class="txt">ณ ${esc(x.place||x.center||'')}</div><div class="txt" style="margin-top:6px">ขอให้มีความสุขความเจริญ</div>
+  <div class="sigs"><div><div class="line">${st.org.sigReg?`<img alt="" src="${esc(st.org.sigReg)}">`:''}</div><span>(${esc(st.org.registrar)||'......................................'})</span><span>หัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง</span></div><div><div class="line">${st.org.sigDir?`<img alt="" src="${esc(st.org.sigDir)}">`:''}</div><span>(${esc(st.org.director)||'......................................'})</span><span>ผู้อำนวยการ${esc(st.org.name)}</span></div></div></div></div>${n<items.length-1?'<div class="html2pdf__page-break"></div>':''}`).join('')}
 /* ----- พต.9 attendance sheets: one page per two training days ----- */
 function courseDays(c){if(!c.startDate)return[];const out=[],d=new Date(c.startDate+'T00:00:00'),e=new Date((c.endDate||c.startDate)+'T00:00:00');let g=0;
   while(d<=e&&g++<90){out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);d.setDate(d.getDate()+1)}return out}
@@ -1033,14 +1063,14 @@ function pt9Doc(c,v){
     return pt9Head(c,'t')+`<table class="rep t9" style="table-layout:fixed"><colgroup><col style="width:6%"><col style="width:18%"><col style="width:28%"><col style="width:14%"><col style="width:10%"><col style="width:14%"><col style="width:10%"></colgroup>
     <thead><tr><th>ที่</th><th>วัน เดือน ปี</th><th>ชื่อ-สกุล</th><th>ลายมือชื่อ</th><th>เวลามา</th><th>ลายมือชื่อ</th><th>เวลากลับ</th></tr></thead>
     <tbody>${Array.from({length:rows},(_,i)=>`<tr><td>${i+1}</td><td>${days[i]?thDate(days[i]):''}</td><td class="nm">${days[i]?esc(c.trainerName||''):''}</td><td></td><td></td><td></td><td></td></tr>`).join('')}</tbody></table>
-    ${ln('จำนวน',[days.length||'',70],'วัน จำนวน',[c.hours,70],'ชั่วโมง')}<div class="sig one">${sigBlock('ผู้รับผิดชอบ',teacherOf(c.center))}</div>${note}`}
+    ${ln('จำนวน',[days.length||'',70],'วัน จำนวน',[c.hours,70],'ชั่วโมง')}<div class="sig one">${sigBlock('ผู้รับผิดชอบ',teacherOf(c.center),'ตำแหน่ง '+esc(teacherPosOf(c.center)))}</div>${note}`}
   const pairs=[];for(let i=0;i<Math.max(days.length,1);i+=2)pairs.push([days[i],days[i+1]]);
   const rows=Math.max(A.length,10),dh=d=>`<th colspan="4">วันที่ ${d?thDate(d):'.............................'}</th>`;
   return pairs.map(pr=>pt9Head(c,v)+`<table class="rep t9" style="table-layout:fixed"><colgroup><col style="width:5%"><col style="width:25%">${'<col style="width:10%"><col style="width:7.5%"><col style="width:10%"><col style="width:7.5%">'.repeat(2)}</colgroup>
     <thead><tr><th rowspan="2">ที่</th><th rowspan="2">ชื่อ-สกุล</th>${dh(pr[0])}${dh(pr[1])}</tr><tr>${'<th>ลายมือชื่อ</th><th>เวลามา</th><th>ลายมือชื่อ</th><th>เวลากลับ</th>'.repeat(2)}</tr></thead>
     <tbody>${Array.from({length:rows},(_,i)=>`<tr><td>${i+1}</td><td class="nm">${A[i]?esc(fullName(A[i])):''}</td>${'<td></td>'.repeat(8)}</tr>`).join('')}</tbody></table>
     <p style="margin-top:10px">ขอรับรองว่า ลายมือชื่อผู้เข้ารับอบรมข้างต้นเป็นลายมือชื่อของผู้เข้ารับการอบรมจริง</p>
-    ${v==='a'?`<div class="sig">${sigBlock('วิทยากร',c.trainerName,dots)}${sigBlock('ครู ศกร.ระดับตำบล',teacherOf(c.center),dots)}</div>`:`<div class="sig one">${sigBlock('ผู้รับผิดชอบ',teacherOf(c.center),dots)}</div>`}${note}`).join('<div class="pbreak"></div>')}
+    ${v==='a'?`<div class="sig">${sigBlock('วิทยากร',c.trainerName,dots)}${sigBlock('ครู ศกร.ระดับตำบล',teacherOf(c.center),'ตำแหน่ง '+esc(teacherPosOf(c.center)),dots)}</div>`:`<div class="sig one">${sigBlock('ผู้รับผิดชอบ',teacherOf(c.center),'ตำแหน่ง '+esc(teacherPosOf(c.center)),dots)}</div>`}${note}`).join('<div class="pbreak"></div>')}
 /* ----- fiscal-year summary ----- */
 function fyRows(cs){return cs.map(c=>({c,apps:appsOf(c).length,pass:passedOf(c).length,bud:budgetTotal(c)}))}
 function fySumDoc(fy,cs){const R=fyRows(cs),T=R.reduce((t,r)=>({apps:t.apps+r.apps,pass:t.pass+r.pass,bud:t.bud+r.bud}),{apps:0,pass:0,bud:0});
@@ -1100,7 +1130,7 @@ $('#mpdf').onclick=async()=>{
   btn.disabled=true;btn.textContent='กำลังสร้าง PDF…';
   try{
     try{await document.fonts.load('21px DocSarabun');await document.fonts.load('bold 21px DocSarabun')}catch(e){}
-    const blob=await html2pdf().set({margin:curDoc.land?0:[20,30,20,12],image:{type:'jpeg',quality:.96},html2canvas:{scale:2,backgroundColor:'#ffffff',onclone:async d=>{try{await Promise.all([d.fonts.load('21px DocSarabun'),d.fonts.load('bold 21px DocSarabun')]);await d.fonts.ready}catch(e){}d.querySelectorAll('.paper,.cert').forEach(thaiBreak)}},jsPDF:{unit:'mm',format:'a4',orientation:curDoc.land?'landscape':'portrait'},pagebreak:{mode:['css','legacy'],avoid:['tr','.avoid','p','h4','.sig','h2','.ln','.o','.hd']}}).from($('#docel')).save(curDoc.filename);
+    const blob=await html2pdf().set({margin:curDoc.land?0:[20,30,20,12],image:{type:'jpeg',quality:.96},html2canvas:{scale:2,backgroundColor:'#ffffff',onclone:async d=>{try{await Promise.all([d.fonts.load('21px DocSarabun'),d.fonts.load('bold 21px DocSarabun')]);await d.fonts.ready}catch(e){}d.querySelectorAll('.paper,.cert').forEach(thaiBreak)}},jsPDF:{unit:'mm',format:'a4',orientation:curDoc.land?'landscape':'portrait'},pagebreak:{mode:['css','legacy'],avoid:['tr','.avoid','p','h4','.sig','h2','.ln','.o','.hd','.sgx']}}).from($('#docel')).save(curDoc.filename);
     toast('ดาวน์โหลดไฟล์ PDF แล้ว');
   }catch(e){toast('สร้าง PDF ไม่สำเร็จ ลองอีกครั้ง')}
   finally{btn.disabled=false;btn.textContent='ดาวน์โหลด PDF'}
