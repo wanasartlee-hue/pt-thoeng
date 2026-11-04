@@ -236,6 +236,10 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
   .paper h4,.paper h2{break-after:avoid}
   .html2pdf__page-break{break-after:page}
   .pbr{height:0!important}
+  table.prt{border-collapse:collapse;width:210mm;margin:0}
+  table.prt>thead>tr>td,table.prt>tfoot>tr>td,table.prt>tbody>tr>td{padding:0;border:0}
+  table.prt td.pc{padding:0 12mm 0 30mm}
+  table.prt .ps{height:20mm}
   .cert{break-inside:avoid}
   /* keep Thai upper marks with their own line at a page break */
   .paper .ln{margin:0;padding-top:4px}
@@ -1115,7 +1119,7 @@ function openDoc(type,data){
   $('#mpage').className='pg'+(land?'':' a4');$('#mpage').innerHTML=`<div class="${land?'':'paper'}" id="docel">${DOCS[type](data)}</div>`;
   const nm=type==='pt14'?`${data.c.name}-ใบรับรอง`:type==='pt14pub'?`${data[0].name}-${data[0].course}`:type==='fysum'?`ปีงบประมาณ-${data.fy}`:(data.name||fullName(data)||data.courseName||'');
   curDoc={land,filename:`${TITLES[type].split(' ').slice(0,2).join('')}-${nm}`.replace(/[\\/:*?"<>|]+/g,'-').slice(0,90)+'.pdf'};
-  $('#pagestyle').textContent=land?'@page{size:A4 landscape;margin:0}':'@page{size:A4 portrait;margin:20mm 12mm 20mm 30mm}';
+  $('#pagestyle').textContent=land?'@page{size:A4 landscape;margin:0}':'@page{size:A4 portrait;margin:0}';
   $('#modal').hidden=false;$('#mclose').focus();
   if(!land){const el=$('#docel');(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>requestAnimationFrame(()=>{try{paginate(el)}catch(e){console.warn(e)}}))}
 }
@@ -1142,7 +1146,13 @@ function paginate(root){
   }
 }
 $('#mclose').onclick=()=>{$('#modal').hidden=true};
-$('#mprint').onclick=async()=>{try{await document.fonts.load('21px DocSarabun');await document.fonts.load('bold 21px DocSarabun');await document.fonts.ready}catch(e){}window.print()};
+$('#mprint').onclick=async()=>{try{await document.fonts.load('21px DocSarabun');await document.fonts.load('bold 21px DocSarabun');await document.fonts.ready}catch(e){}
+  const el=$('#docel');if(curDoc.land||!el){window.print();return}
+  // a table whose header/footer rows repeat on every printed page gives each page its 20 mm top/bottom margin
+  const t=document.createElement('table');t.className='prt';t.innerHTML='<thead><tr><td><div class="ps"></div></td></tr></thead><tbody><tr><td class="pc"></td></tr></tbody><tfoot><tr><td><div class="ps"></div></td></tr></tfoot>';
+  el.parentNode.insertBefore(t,el);t.querySelector('.pc').appendChild(el);
+  let done=false;const restore=()=>{if(done)return;done=true;t.parentNode.insertBefore(el,t);t.remove()};
+  window.addEventListener('afterprint',restore,{once:true});window.print();setTimeout(restore,1500)};
 document.addEventListener('keydown',e=>{if(e.key==='Escape')$('#modal').hidden=true});
 /* html2canvas cannot find line breaks inside Thai text (no spaces), so mark word boundaries with zero-width spaces in the copy it draws */
 function thaiBreak(root){if(!(window.Intl&&Intl.Segmenter))return;const seg=new Intl.Segmenter('th',{granularity:'word'});const w=root.ownerDocument.createTreeWalker(root,NodeFilter.SHOW_TEXT),ns=[];while(w.nextNode())ns.push(w.currentNode);
