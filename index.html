@@ -186,6 +186,19 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
 .paper .sgx .lbl,.paper .sgx .role{white-space:nowrap}
 .paper .sgx .dl{grid-column:2;border-bottom:1.5px dotted #000;height:.75em;margin-bottom:.22em}
 .paper .sgx .r2{grid-column:2;justify-self:center;text-align:center;white-space:nowrap}
+.paper .bgrid{display:grid;grid-template-columns:auto 84px auto minmax(4px,1fr) auto 84px auto;column-gap:3px;row-gap:3px;padding-left:4px;font-size:19.5px;align-items:baseline;margin:2px 0 4px;break-inside:avoid;page-break-inside:avoid}
+.paper .bgrid .amt{border-bottom:1px dotted #000;text-align:right;padding-right:3px;line-height:1.2;font-variant-numeric:tabular-nums}
+.paper .bgrid .tot{font-weight:700}
+.paper .d.nw{white-space:nowrap;flex:0 0 auto;min-width:60px}
+.paper .bgrid>span,.paper .ulist .u>span{white-space:nowrap}
+.paper .ulist.one .u{display:grid;grid-template-columns:auto 300px 56px auto;column-gap:6px;justify-content:start}
+.paper .ulist{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);row-gap:2px;column-gap:18px;padding-left:24px;margin:1px 0 4px;break-inside:avoid;page-break-inside:avoid}
+.paper .ulist.one{grid-template-columns:1fr}
+.paper .ulist .u{display:flex;align-items:baseline;gap:6px;min-width:0}
+.paper .ulist .u.full{grid-column:1/-1}
+.paper .ulist .cb{margin:0;flex:none;top:1px}
+.paper .ulist .n{display:inline-block;min-width:46px;border-bottom:1px dotted #000;text-align:center;line-height:1.2}
+.paper .ulist i{font-size:19px}
 .paper .cmt{padding-left:12%;margin-top:20px;break-inside:avoid;page-break-inside:avoid}
 .paper .cmt .cl{border-bottom:1.5px dotted #000;min-height:1.35em;margin-top:2px;width:86%}
 .paper .note{font-size:17px;margin-top:10px;background:none;color:#000;padding:0;border-radius:0}
@@ -258,8 +271,8 @@ const baht=v=>num(v).toLocaleString('th-TH',{minimumFractionDigits:2,maximumFrac
 const thDate=d=>{if(!d)return '';const x=new Date(d+'T00:00:00');return isNaN(x)?'':x.toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'})};
 const thStamp=t=>t?new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'}):'';
 const BE=new Date().getFullYear()+543;
-const fld=(v,w)=>`<span class="d${w?'':' fx'}"${w?` style="min-width:${w}px"`:''}>${esc(v)||'&nbsp;'}</span>`;
-const ln=(...p)=>`<div class="ln">${p.map(x=>Array.isArray(x)?fld(x[0],x[1]):`<span class="lb">${x}</span>`).join('')}</div>`;
+const fld=(v,w,nw)=>`<span class="d${w?'':' fx'}${nw?' nw':''}"${w?` style="min-width:${w}px"`:''}>${esc(v)||'&nbsp;'}</span>`;
+const ln=(...p)=>`<div class="ln">${p.map(x=>Array.isArray(x)?fld(x[0],x[1],x[2]):`<span class="lb">${x}</span>`).join('')}</div>`;
 const opts=(list,isOn,cols,other)=>`<div class="opts" style="grid-template-columns:repeat(${cols},minmax(0,auto))">${list.map(v=>`<div class="o"><span class="cb${isOn(v)?' on':''}"></span><span>${esc(v)}</span></div>`).join('')}${other?`<div class="o" style="grid-column:1/-1"><span class="cb${other[0]?' on':''}"></span><span class="lb">${other[1]||'อื่น ๆ (โปรดระบุ)'}</span>${fld(other[0])}</div>`:''}</div>`;
 const D=(v,w)=>`<span class="d" style="min-width:${w||60}px">${esc(v)||'&nbsp;'}</span>`;
 const CB=(on,label)=>`<span style="white-space:nowrap"><span class="cb${on?' on':''}"></span>${esc(label)}</span> `;
@@ -1025,9 +1038,9 @@ const DOCS={
   <p>1. หลักสูตร/โครงการ ${D(c.name,300)} จำนวน ${D(c.hours,40)} ชั่วโมง</p>
   <p>2. ชื่อวิทยากร ${D(c.trainerName,170)} วุฒิการศึกษา ${D(c.trainerEdu,90)} อายุ ${D(c.trainerAge,30)} ปี อาชีพ ${D(c.trainerJob,90)}</p>
   <p>3. พื้นที่ดำเนินการ ชื่อหมู่บ้าน/ชุมชน ${D(c.village,150)} หมู่ที่ ${D(c.moo,30)} ตำบล/แขวง ${D(c.tambon,100)} อำเภอ/เขต ${D(c.amphoe,80)} จังหวัด ${D(c.province,80)}</p>
-  <p>4. ระยะเวลาดำเนินการ เมื่อวันที่ ${D(thDate(c.startDate),150)} สิ้นสุดเมื่อวันที่ ${D(thDate(c.endDate||c.startDate),150)}</p>
-  <p>5. อนุมัติเบิกจ่ายจากงบประมาณ ประเภทงบ ${D(c.budgetType,90)} รหัส ${D(c.budgetCode,90)} จำนวน ${D(baht(budgetTotal(c)),100)} บาท</p>
-  <p style="padding-left:18px">${BUDGET.map(([k,l])=>`${l} ${D(baht(b[k]),80)} บาท`).join(' &nbsp; ')}</p>
+  ${ln('4. ระยะเวลาดำเนินการ เมื่อวันที่',[thDate(c.startDate),0,1],'สิ้นสุดเมื่อวันที่',[thDate(c.endDate||c.startDate),0,1])}
+  ${ln('5. อนุมัติเบิกจ่ายจากงบประมาณ ประเภทงบ',[c.budgetType,0,1],'รหัส',[c.budgetCode,0,1])}
+  <div class="bgrid">${[[BUDGET[0],BUDGET[1]],[BUDGET[2],BUDGET[3]]].map(pr=>pr.map(([k,l],i)=>`<span>${l}</span><span class="amt">${baht(b[k])}</span><span>บาท</span>${i===0?'<span></span>':''}`).join('')).join('')}<span></span><span></span><span></span><span></span><span class="tot">รวมเป็นเงินทั้งสิ้น</span><span class="amt tot">${baht(budgetTotal(c))}</span><span class="tot">บาท</span></div>
   <p>6. วิธีการสำรวจความต้องการเรียน ${SURVEY.map(v=>CB(sm.has(v),v)).join(' ')}</p>
   ${crossTable('7. จำนวนผู้เข้ารับการฝึกอบรมและผู้ผ่านการฝึกอบรม จำแนกตามอายุและเพศ',['ต่ำกว่า 15 ปี','15 - 39 ปี','40 - 59 ปี','60 ปีขึ้นไป'],ageBand(c),R)}
   ${crossTable('8. จำแนกตามกลุ่มอาชีพและเพศ',JOBS,jobKey,R)}
@@ -1035,8 +1048,8 @@ const DOCS={
   ${crossTable('10. จำแนกตามระดับการศึกษาและเพศ',EDU_S,eduKey,R)}
   <div class="avoid"><h4>11. การติดตามผู้ผ่านการฝึกอบรม</h4><p>11.1 มีการติดตามผู้ผ่านการฝึกอบรม ${CB(R.follows.length>0,'มี ดำเนินการ')} ${D(R.follows.length?r.followHow:'',300)} ${CB(!R.follows.length,'ไม่มี')}</p>
   <p>11.2 ผลการประเมินความพึงพอใจในการจัดโครงการ อยู่ในระดับ ${D(R.satMean?satLevel(R.satMean)+' (ค่าเฉลี่ย '+R.satMean.toFixed(2)+' จาก '+R.sats.length+' คน)':'',260)}</p>
-  <p>11.3 ผู้ผ่านการฝึกอบรมได้นำความรู้ไปใช้จริง</p><p style="padding-left:18px">${USE.slice(0,8).map(u=>`${CB(uc(u)>0,u)} ${D(uc(u)||'-',24)} คน`).join(' ')}</p>
-  <p>11.4 ผู้ผ่านการฝึกอบรมมีรายได้เฉลี่ยเพิ่มขึ้น/เดือน</p><p style="padding-left:18px">${INCOME.map(v=>`${CB(ic(v)>0,'รายได้ '+v)} ${D(ic(v)||'-',24)} คน`).join('<br>')}</p></div>
+  <p>11.3 ผู้ผ่านการฝึกอบรมได้นำความรู้ไปใช้จริง (ตอบได้มากกว่า 1 ข้อ)</p><div class="ulist">${[['สร้างอาชีพ',1],['เพิ่มรายได้',1,'เฉพาะการประกอบอาชีพ/พัฒนาอาชีพ'],['ลดรายจ่าย',1,'เฉพาะการประกอบอาชีพ/พัฒนาอาชีพ'],['แก้ปัญหาในการดำรงชีวิต',1],['มีทักษะ'],['ต่อยอดภูมิปัญญาท้องถิ่น'],['สร้างมูลค่าเพิ่ม'],['พัฒนาสู่วิสาหกิจชุมชน']].map(([u,full,note])=>`<div class="u${full?' full':''}"><span class="cb${uc(u)>0?' on':''}"></span><span>${u}</span><span class="n">${uc(u)||''}</span><span>คน</span>${note?`<i>(${note})</i>`:''}</div>`).join('')}</div>
+  <p>11.4 ในกรณีเป็นการฝึกอบรมเพื่อการประกอบอาชีพ พัฒนาอาชีพ ผู้ผ่านการฝึกอบรมมีรายได้เฉลี่ยเพิ่มขึ้น/เดือน</p><div class="ulist one">${INCOME.map(v=>`<div class="u"><span class="cb${ic(v)>0?' on':''}"></span><span>รายได้${v.startsWith('ต่ำกว่า')?'':'ระหว่าง '}${v}</span><span class="n">${ic(v)||''}</span><span>คน</span></div>`).join('')}</div></div>
   <div class="avoid"><h4>12. ปัญหา อุปสรรค และข้อเสนอแนะ</h4><p>12.1 ปัญหา อุปสรรค ${CB(!r.problems,'ไม่มี')} ${CB(!!r.problems,'มี')} ${D(r.problems,360)}</p><p>12.2 ข้อเสนอแนะ ${D(r.suggest||'-',480)}</p>
   <div class="sgxw">${sigRow('ผู้จัดการเรียนรู้',teacherOf(c.center),teacherPosOf(c.center))}${sigRow('เจ้าหน้าที่ที่รับผิดชอบ',st.org.registrar,'หัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง')}</div>
   <div class="cmt"><b>ข้อคิดเห็นผู้บริหารสถานศึกษา</b><div class="cl">${esc(ap.comment)||'&nbsp;'}</div>${ap.comment?'':'<div class="cl">&nbsp;</div>'}</div>
