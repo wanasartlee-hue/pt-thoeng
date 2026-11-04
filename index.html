@@ -827,7 +827,7 @@ function tabPT9(){
   T.innerHTML+=`<div class="sheet stack"><h2>บัญชีลงเวลา (แบบ พต.9)</h2>
    <p class="muted">รายชื่อดึงจากใบสมัคร พต.2 (${A.length} คน) วันที่ตามวันเปิดหลักสูตร ${ds.length} วัน${ds.length?' ('+ds.map(d=>thDate(d)).join(', ')+')':''} พิมพ์หน้าละ 2 วัน</p>
    ${!c.timeStart||!c.timeEnd?'<p class="note">ยังไม่ได้กำหนดเวลาเรียน แก้ไขได้ที่แท็บ “หลักสูตร & งบประมาณ”</p>':''}
-   <div class="row"><button class="btn gold wrap" type="button" data-p9="pt9a">ผู้เข้ารับการฝึกอบรม<br><small>การประกอบอาชีพและพัฒนาอาชีพ</small></button><button class="btn wrap" type="button" data-p9="pt9b">ผู้เข้ารับการฝึกอบรม<br><small>ทักษะชีวิต / พัฒนาสังคมและชุมชน</small></button><button class="btn ghost wrap" type="button" data-p9="pt9t">บัญชีลงเวลาของวิทยากร</button></div></div>`;
+   <div class="row"><button class="btn gold wrap" type="button" data-p9="pt9a">ผู้เข้ารับการฝึกอบรม<br><small>การประกอบอาชีพและพัฒนาอาชีพ</small></button><button class="btn wrap" type="button" data-p9="pt9b">ผู้เข้ารับการฝึกอบรม<br><small>ทักษะชีวิต / พัฒนาสังคมและชุมชน</small></button><button class="btn gold wrap" type="button" data-p9="pt9t">บัญชีลงเวลาของวิทยากร</button></div></div>`;
   bindPicker();$$('[data-p9]').forEach(b=>b.onclick=()=>openDoc(b.dataset.p9,c));
 }
 /* ----- fiscal-year overview (admin, supervisor) ----- */
