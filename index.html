@@ -917,7 +917,7 @@ function tabPrompt(){
     ${inp('title','หัวข้อรายงาน',`value="${esc(g.title||'การจัดการเรียนรู้เพื่อพัฒนาตนเอง')}"`)}
     ${inp('kind','รูปแบบ',`value="${esc(g.kind||(hours>=31?'รูปแบบชั้นเรียนวิชาชีพ':'รูปแบบกลุ่มสนใจ'))}"`)}
     ${inp('media','สื่อการเรียนรู้',`value="${esc(g.media||'ภูมิปัญญาท้องถิ่น, สื่ออินเทอร์เน็ต, สื่อบุคคล, ตัวอย่างชิ้นงาน')}"`)}
-    <div class="grid">${inp('supDate','วันที่นิเทศติดตาม',`type="date" value="${esc(g.supDate||'')}"`)}${inp('supBy','ผู้นิเทศ (ชื่อ และตำแหน่ง)',`value="${esc(g.supBy||'')}" placeholder="เช่น นายชาตรี ไชยรัตน์ (ครูชำนาญการ)"`)}</div>
+    <div class="grid">${inp('supDate','วันที่นิเทศติดตาม',`type="date" value="${esc(g.supDate||'')}"`)}${inp('supBy','ผู้นิเทศ (ชื่อ และตำแหน่ง)',`value="${esc(g.supBy||'')}" placeholder="เช่น นายวนศาสตร์ วัฒนาสกุลลี ตำแหน่งครู"`)}</div>
     <label class="f">ข้อเสนอแนะ/ข้อแนะแนว<textarea name="suggest">${esc(g.suggest||((c.report||{}).suggest)||'')}</textarea></label>
     ${inp('color','โทนสี',`value="${esc(g.color||'ม่วง ทอง')}"`)}
     <div class="row"><button class="btn" type="submit">บันทึกข้อมูล</button></div></form>
