@@ -113,6 +113,12 @@ legend{font-family:var(--f-display);color:var(--plum);font-size:15.5px;padding:0
 .paper .s9w{display:grid;grid-template-columns:1fr 1.25fr;column-gap:10px;margin-top:10px;break-inside:avoid;page-break-inside:avoid}
 .paper .s9w.one{grid-template-columns:1fr;justify-items:end;padding-right:6%}
 .paper .s9w.one.mid{justify-items:center;padding-right:0;margin-top:22px}
+.paper.wide{width:1002px}
+.paper .t20 th{font-size:15px;line-height:1.15;vertical-align:middle;padding:3px 2px;text-align:center}
+.paper .t20 td{font-size:18px;vertical-align:middle;height:30px;padding:0 3px;text-align:center;white-space:nowrap}
+.paper .t20 td.nm{text-align:left;white-space:nowrap;overflow:hidden;padding-left:6px}
+.paper .t20 td.ck{font-family:"DejaVu Sans",Tahoma,sans-serif;font-size:17px}
+#modal .pg.a4l{padding:57px 45px 57px 76px}
 .paper .t10 th{font-size:14.5px;line-height:1.12;vertical-align:middle;padding:2px 2px}
 .paper .t10 td{font-size:18px;vertical-align:middle;height:29px;padding:0 3px}
 .paper .t10 td.id{font-size:16px;letter-spacing:-.2px;white-space:nowrap}
@@ -255,6 +261,9 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
   table.prt>thead>tr>td,table.prt>tfoot>tr>td,table.prt>tbody>tr>td{padding:0;border:0}
   table.prt td.pc{padding:0 12mm 0 30mm}
   table.prt .ps{height:20mm}
+  table.prt.w{width:297mm}
+  table.prt.w td.pc{padding:0 12mm 0 20mm}
+  table.prt.w .ps{height:15mm}
   .cert{break-inside:avoid}
   /* keep Thai upper marks with their own line at a page break */
   .paper .ln{margin:0;padding-top:4px}
@@ -1048,10 +1057,10 @@ const DOCS={
   <h4>ความคิดเห็นและข้อเสนอแนะอื่น ๆ</h4><p>${esc(d.comment)||'-'}</p>`},
  pt20one:d=>DOCS.pt20(st.courses.find(x=>x.id===d.courseId)||{name:d.courseName,center:d.center},[d]),
  pt20:(c,only)=>{const L=only||st.subs.filter(s=>s.type==='pt20'&&s.courseId===c.id);return `<div class="hd"><b>แบบ พต. 20</b></div><h2>แบบติดตามผู้ผ่านการฝึกอบรม</h2><p class="ctr">${esc(cname(c.center))} ${esc(st.org.short)} จังหวัด${esc(st.org.province)}</p>
-  <p>หลักสูตร ${D(c.name,250)} รูปแบบ ${D(c.format,100)} จำนวน ${D(c.hours,30)} ชั่วโมง</p><p>ระหว่างวันที่ ${D(thDate(c.startDate)+(c.endDate?' ถึง '+thDate(c.endDate):''),250)} ชื่อวิทยากร ${D(c.trainerName,150)}</p>
-  <table class="small rep"><thead><tr><th rowspan="2">ที่</th><th rowspan="2">ชื่อ – นามสกุล (ผู้ผ่านการฝึกอบรม)</th><th colspan="${USE.length}">การนำไปใช้ประโยชน์</th><th rowspan="2">รายได้เพิ่มขึ้น/เดือน</th></tr><tr>${USE.map(u=>`<th>${esc(u)}</th>`).join('')}</tr></thead><tbody>
-  ${L.map((s,i)=>`<tr class="avoid"><td>${i+1}</td><td style="text-align:left">${esc(fullName(s))}</td>${USE.map(u=>`<td>${(s.use||[]).includes(u)?'✓':''}</td>`).join('')}<td>${esc(s.income||'-')}</td></tr>`).join('')}</tbody></table>
-  <div class="sig one">${sigBlock('ผู้รายงาน',teacherOf(c.center),'ตำแหน่ง '+esc(teacherPosOf(c.center)))}</div>`},
+  ${ln('หลักสูตร',[c.name],'รูปแบบ',[c.format,150],'จำนวน',[c.hours,60],'ชั่วโมง')}${ln('ระหว่างวันที่',[shortRange(c.startDate,c.endDate),0,1],'ชื่อวิทยากร',[c.trainerName])}
+  <table class="rep t20" style="table-layout:fixed"><colgroup><col style="width:4%"><col style="width:19%">${USE.map(()=>'<col style="width:6.1%">').join('')}<col style="width:16%"></colgroup><thead><tr><th rowspan="2">ที่</th><th rowspan="2">ชื่อ – นามสกุล<br>(ผู้ผ่านการฝึกอบรม)</th><th colspan="${USE.length}">การนำไปใช้ประโยชน์</th><th rowspan="2">รายได้เพิ่มขึ้น/เดือน</th></tr><tr>${USE.map(u=>`<th>${esc(u)}</th>`).join('')}</tr></thead><tbody>
+  ${L.map((s,i)=>`<tr class="avoid"><td>${i+1}</td><td class="nm">${esc(fullName(s))}</td>${USE.map(u=>`<td class="ck">${(s.use||[]).includes(u)?'✓':''}</td>`).join('')}<td>${esc(s.income||'-')}</td></tr>`).join('')}</tbody></table>
+  <div class="s9w one">${sig9('ผู้รายงาน',teacherOf(c.center),teacherPosOf(c.center),'')}</div>`},
  pt13:c=>{const R=report(c),r=c.report||{},b=c.budget||{},ap=c.approval||{},sm=new Set(c.surveyMethods||[]);const uc=u=>R.follows.filter(s=>(s.use||[]).includes(u)).length;const ic=v=>R.follows.filter(s=>s.income===v).length;
   const jobKey=a=>JOBS.includes(a.job)?a.job:'อื่น ๆ',tgKey=a=>TARGETS.includes(a.target)?a.target:'อื่น ๆ',eduKey=a=>EDU_S[EDU.indexOf(a.edu)]||'ต่ำกว่าประถม';
   return `<div class="hd"><b>แบบ พต. 13</b></div><h2>แบบรายงานผลการฝึกอบรม</h2><p class="ctr">ศูนย์การเรียนรู้ระดับตำบล ${D(cname(c.center),200)}<br><b>${esc(st.org.name)} จังหวัด${esc(st.org.province)}</b></p>
@@ -1133,19 +1142,19 @@ function fySumDoc(fy,cs){const R=fyRows(cs),T=R.reduce((t,r)=>({apps:t.apps+r.ap
 const TITLES={pt14pub:'แบบ พต.14 ใบรับรองผ่านการฝึกอบรม',pt9a:'แบบ พต.9 บัญชีลงเวลา (อาชีพ)',pt9b:'แบบ พต.9 บัญชีลงเวลา (ทักษะชีวิต/สังคม)',pt9t:'แบบ พต.9 บัญชีลงเวลาวิทยากร',fysum:'สรุปปีงบประมาณ',pt1:'แบบ พต.1 แบบสำรวจความต้องการ',pt2:'แบบ พต.2 ใบสมัคร',pt8:'แบบ พต.8 บัญชีรายชื่อผู้สมัคร',pt10:'แบบ พต.10 แบบประเมินผล',pt12:'แบบ พต.12 แบบประเมินความพึงพอใจ',pt12s:'แบบ พต.12 สรุปความพึงพอใจ',pt13:'แบบ พต.13 รายงานผลการฝึกอบรม',pt14:'แบบ พต.14 ใบรับรองผ่านการฝึกอบรม',pt20:'แบบ พต.20 แบบติดตามผู้ผ่านการฝึกอบรม',pt20one:'แบบ พต.20 แบบติดตามผู้ผ่านการฝึกอบรม'};
 let curDoc=null;
 function openDoc(type,data){
-  if(!data)return;const land=type==='pt14'||type==='pt14pub';
+  if(!data)return;const land=type==='pt14'||type==='pt14pub',wide=type==='pt20'||type==='pt20one';
   $('#mtitle').textContent=TITLES[type];
-  $('#mpage').className='pg'+(land?'':' a4');$('#mpage').innerHTML=`<div class="${land?'':'paper'}" id="docel">${DOCS[type](data)}</div>`;
+  $('#mpage').className='pg'+(land?'':wide?' a4l':' a4');$('#mpage').innerHTML=`<div class="${land?'':wide?'paper wide':'paper'}" id="docel">${DOCS[type](data)}</div>`;
   const nm=type==='pt14'?`${data.c.name}-ใบรับรอง`:type==='pt14pub'?`${data[0].name}-${data[0].course}`:type==='fysum'?`ปีงบประมาณ-${data.fy}`:(data.name||fullName(data)||data.courseName||'');
-  curDoc={land,filename:`${TITLES[type].split(' ').slice(0,2).join('')}-${nm}`.replace(/[\\/:*?"<>|]+/g,'-').slice(0,90)+'.pdf'};
-  $('#pagestyle').textContent=land?'@page{size:A4 landscape;margin:0}':'@page{size:A4 portrait;margin:0}';
+  curDoc={land,wide,filename:`${TITLES[type].split(' ').slice(0,2).join('')}-${nm}`.replace(/[\\/:*?"<>|]+/g,'-').slice(0,90)+'.pdf'};
+  $('#pagestyle').textContent=land||wide?'@page{size:A4 landscape;margin:0}':'@page{size:A4 portrait;margin:0}';
   $('#modal').hidden=false;$('#mclose').focus();
-  if(!land){const el=$('#docel');(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>requestAnimationFrame(()=>{try{paginate(el)}catch(e){console.warn(e)}}))}
+  if(!land){const el=$('#docel');(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>requestAnimationFrame(()=>{try{paginate(el,wide?680:971)}catch(e){console.warn(e)}}))}
 }
 /* Split long tables at page ends and repeat their header rows; explicit .pbreak markers start a new page.
    Page = A4 minus 20 mm top/bottom margins = 257 mm = 971 px at the document's 96 dpi scale. */
-function paginate(root){
-  const PH=971,top=el=>el.getBoundingClientRect().top-root.getBoundingClientRect().top;
+function paginate(root,PH=971){
+  const top=el=>el.getBoundingClientRect().top-root.getBoundingClientRect().top;
   const fill=sp=>{sp.style.height='0px';const r=top(sp)%PH;sp.style.height=(r>1?PH-r-1:0)+'px'};
   const spacer=()=>{const d=document.createElement('div');d.className='html2pdf__page-break pbr';return d};
   for(const it of [...root.querySelectorAll('.pbreak, table.rep')]){
@@ -1168,7 +1177,7 @@ $('#mclose').onclick=()=>{$('#modal').hidden=true};
 $('#mprint').onclick=async()=>{try{await document.fonts.load('21px DocSarabun');await document.fonts.load('bold 21px DocSarabun');await document.fonts.ready}catch(e){}
   const el=$('#docel');if(curDoc.land||!el){window.print();return}
   // a table whose header/footer rows repeat on every printed page gives each page its 20 mm top/bottom margin
-  const t=document.createElement('table');t.className='prt';t.innerHTML='<thead><tr><td><div class="ps"></div></td></tr></thead><tbody><tr><td class="pc"></td></tr></tbody><tfoot><tr><td><div class="ps"></div></td></tr></tfoot>';
+  const t=document.createElement('table');t.className='prt'+(curDoc.wide?' w':'');t.innerHTML='<thead><tr><td><div class="ps"></div></td></tr></thead><tbody><tr><td class="pc"></td></tr></tbody><tfoot><tr><td><div class="ps"></div></td></tr></tfoot>';
   el.parentNode.insertBefore(t,el);t.querySelector('.pc').appendChild(el);
   let done=false;const restore=()=>{if(done)return;done=true;t.parentNode.insertBefore(el,t);t.remove()};
   window.addEventListener('afterprint',restore,{once:true});window.print();setTimeout(restore,1500)};
@@ -1181,7 +1190,7 @@ $('#mpdf').onclick=async()=>{
   btn.disabled=true;btn.textContent='กำลังสร้าง PDF…';
   try{
     try{await document.fonts.load('21px DocSarabun');await document.fonts.load('bold 21px DocSarabun')}catch(e){}
-    const blob=await html2pdf().set({margin:curDoc.land?0:[20,30,20,12],image:{type:'jpeg',quality:.96},html2canvas:{scale:2,backgroundColor:'#ffffff',onclone:async d=>{try{await Promise.all([d.fonts.load('21px DocSarabun'),d.fonts.load('bold 21px DocSarabun')]);await d.fonts.ready}catch(e){}d.querySelectorAll('.paper,.cert').forEach(thaiBreak)}},jsPDF:{unit:'mm',format:'a4',orientation:curDoc.land?'landscape':'portrait'},pagebreak:{mode:['css','legacy'],avoid:['tr','.avoid','p','h4','.sig','h2','.ln','.o','.hd','.sgx']}}).from($('#docel')).save(curDoc.filename);
+    const blob=await html2pdf().set({margin:curDoc.land?0:curDoc.wide?[15,20,15,12]:[20,30,20,12],image:{type:'jpeg',quality:.96},html2canvas:{scale:2,backgroundColor:'#ffffff',onclone:async d=>{try{await Promise.all([d.fonts.load('21px DocSarabun'),d.fonts.load('bold 21px DocSarabun')]);await d.fonts.ready}catch(e){}d.querySelectorAll('.paper,.cert').forEach(thaiBreak)}},jsPDF:{unit:'mm',format:'a4',orientation:curDoc.land||curDoc.wide?'landscape':'portrait'},pagebreak:{mode:['css','legacy'],avoid:['tr','.avoid','p','h4','.sig','h2','.ln','.o','.hd','.sgx']}}).from($('#docel')).save(curDoc.filename);
     toast('ดาวน์โหลดไฟล์ PDF แล้ว');
   }catch(e){toast('สร้าง PDF ไม่สำเร็จ ลองอีกครั้ง')}
   finally{btn.disabled=false;btn.textContent='ดาวน์โหลด PDF'}
