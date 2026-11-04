@@ -90,6 +90,10 @@ legend{font-family:var(--f-display);color:var(--plum);font-size:15.5px;padding:0
 .tabs{position:relative;display:flex;gap:2px;overflow-x:auto;scroll-behavior:auto;border-bottom:2px solid var(--line);margin-bottom:16px}
 .tabs button{font:inherit;border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tabs button.on{color:var(--plum);border-bottom-color:var(--gold)}
+label.f.openf{color:#c99400;font-weight:700;font-size:15px}
+select.sel-open{background:var(--violet);color:#fff;border:2px solid var(--plum);font-weight:600;box-shadow:0 0 0 3px var(--lilac)}
+select.sel-open:focus{outline:2px solid var(--gold);outline-offset:1px}
+select.sel-open option{background:#fff;color:var(--ink);font-weight:400}
 .tabs button{position:relative}
 .tabs button+button::before{content:"";position:absolute;left:-1px;top:20%;height:60%;width:2px;border-radius:2px;background:var(--gold)}
 .pw{position:relative;display:block}
@@ -735,7 +739,7 @@ function courseEditor(){
    ${inp('format','รูปแบบ',`value="${esc(c.format||'')}"`)}${inp('startDate','วันที่เริ่ม',`type="date" required value="${esc(c.startDate||'')}"`)}${inp('endDate','วันที่สิ้นสุด',`type="date" value="${esc(c.endDate||'')}"`)}
    <label class="f">ปีงบประมาณ<select name="fy">${st.years.list.map(y=>opt(y,String(c.fy||st.fy),'พ.ศ. '+y)).join('')}</select></label>
    ${inp('timeStart','เวลาเริ่มเรียน (น.)',`value="${esc(c.timeStart||'09.00')}" placeholder="09.00"`)}${inp('timeEnd','เวลาเลิกเรียน (น.)',`value="${esc(c.timeEnd||'16.00')}" placeholder="16.00"`)}
-   <label class="f">การรับสมัคร<select name="open">${opt('1',c.open?'1':'0','เปิดรับสมัคร (แสดงในหน้าผู้เรียน)')}${opt('0',c.open?'1':'0','ปิดรับสมัคร')}</select></label></div></div>
+   <label class="f openf">การรับสมัคร<select name="open" class="sel-open">${opt('1',c.open?'1':'0','เปิดรับสมัคร (แสดงในหน้าผู้เรียน)')}${opt('0',c.open?'1':'0','ปิดรับสมัคร')}</select></label></div></div>
   <div class="sec"><legend>สถานที่จัด</legend><div class="grid">${inp('place','สถานที่จัด ณ',`value="${esc(c.place||'')}"`)}${inp('village','หมู่บ้าน/ชุมชน',`value="${esc(c.village||'')}"`)}${inp('moo','หมู่ที่',`value="${esc(c.moo||'')}"`)}${inp('tambon','ตำบล',`value="${esc(c.tambon||'')}"`)}${inp('amphoe','อำเภอ',`value="${esc(c.amphoe||'')}"`)}${inp('province','จังหวัด',`value="${esc(c.province||'')}"`)}</div></div>
   <div class="sec"><legend>วิทยากร</legend><div class="grid">${inp('trainerName','ชื่อวิทยากร',`value="${esc(c.trainerName||'')}"`)}${inp('trainerEdu','วุฒิการศึกษา',`value="${esc(c.trainerEdu||'')}"`)}${inp('trainerAge','อายุ',`type="number" value="${esc(c.trainerAge||'')}"`)}${inp('trainerJob','อาชีพ',`value="${esc(c.trainerJob||'')}"`)}</div></div>
   <div class="sec"><legend>งบประมาณ (บาท)</legend><div class="grid">${BUDGET.map(([k,l])=>inp('b_'+k,l,`type="number" min="0" step="0.01" value="${esc(b[k]||'')}"`)).join('')}${inp('budgetType','ประเภทงบ',`value="${esc(c.budgetType||'')}"`)}${inp('budgetCode','รหัสงบประมาณ',`value="${esc(c.budgetCode||'')}"`)}</div>
