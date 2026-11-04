@@ -206,7 +206,8 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
 .cert .sigs span{white-space:nowrap}
 .cert .sigs div{display:grid;gap:0}
 .cert .line{border-bottom:1px dotted #2a1648;height:50px;margin:0 30px 4px;position:relative}
-.cert .line img{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);max-height:74px;max-width:88%;object-fit:contain}
+.cert .line img{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);height:72px;width:auto;max-width:88%;object-fit:contain;object-position:center bottom}
+.cert .line img.big{height:100px;max-width:100%;bottom:-12px}
 .cert .txt{line-height:1.35}
 /* print: only the open document, laid out exactly like the PDF */
 @media print{
@@ -407,10 +408,17 @@ try{const s=JSON.parse(sessionStorage.getItem('pt-me')||'null');if(s)st.me=s}cat
 const isAll=()=>st.me&&(st.me.role==='admin'||st.me.role==='supervisor');
 const can=r=>st.me&&(st.me.role==='admin'||st.me.role===r);
 
+/* crop empty margins around an uploaded signature so it fills its space on the certificate */
+function trimImg(src){return new Promise(res=>{const im=new Image();im.onload=()=>{try{const cv=document.createElement('canvas');cv.width=im.width;cv.height=im.height;const g=cv.getContext('2d');g.drawImage(im,0,0);
+  const px=g.getImageData(0,0,cv.width,cv.height).data;let x0=cv.width,y0=cv.height,x1=-1,y1=-1;
+  for(let y=0;y<cv.height;y++)for(let x=0;x<cv.width;x++){if(px[(y*cv.width+x)*4+3]>24){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y}}
+  if(x1<0||(x0<=2&&y0<=2&&x1>=cv.width-3&&y1>=cv.height-3))return res(src);const p=4;x0=Math.max(0,x0-p);y0=Math.max(0,y0-p);x1=Math.min(cv.width-1,x1+p);y1=Math.min(cv.height-1,y1+p);
+  const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;o.getContext('2d').drawImage(cv,x0,y0,o.width,o.height,0,0,o.width,o.height);res(o.toDataURL('image/png'))}catch(e){res(src)}};im.onerror=()=>res(src);im.src=src})}
+async function trimSigs(){for(const k of ['sigReg','sigDir']){if(st.org[k]&&!(st._trim||{})[k+st.org[k].length]){const t=await trimImg(st.org[k]);st._trim={...(st._trim||{}),[k+t.length]:1};st.org[k]=t}}}
 async function loadPublic(){
   const [c,o,cs,y]=await Promise.all([S.get('meta/centers'),S.get('meta/org'),S.list('courses'),S.get('meta/years').catch(()=>null)]);
   if(y&&Array.isArray(y.list)&&y.list.length)st.years={list:y.list.map(String).sort(),current:String(y.current||y.list[y.list.length-1])};if(!st.fy||!st.years.list.includes(st.fy))st.fy=st.years.current;
-  st.centers=(c&&c.list)||[];st.cteach=(c&&c.teachers)||{};st.cpos=(c&&c.positions)||{};st.org={...ORG_DEFAULT,...(o||{})};st.courses=cs.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
+  st.centers=(c&&c.list)||[];st.cteach=(c&&c.teachers)||{};st.cpos=(c&&c.positions)||{};st.org={...ORG_DEFAULT,...(o||{})};await trimSigs();st.courses=cs.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
   $('#orgline').textContent=`${st.org.name} จังหวัด${st.org.province}`;
   $('#seal').innerHTML=st.org.logo?`<img alt="" src="${esc(st.org.logo)}">`:'สกร.';
 }
@@ -865,9 +873,9 @@ function tabUsers(){
         toast('บันทึกผู้ใช้งานแล้ว');renderStaff()}catch(err){toast(authMsg(err))}};
     return}
   T.innerHTML=`<div class="row" style="margin-bottom:12px"><h2 style="flex:1">ผู้ใช้งาน (${st.staff.length})</h2><label class="btn ghost" for="u-xlsx" style="cursor:pointer">นำเข้าจากไฟล์ Excel</label><input type="file" id="u-xlsx" accept=".xlsx,.xls" hidden><button class="btn gold" id="u-add" type="button">+ เพิ่มครู / แอดมิน</button></div>
-  <p class="note" style="margin-bottom:12px">ไฟล์ Excel ใช้หัวตาราง: ที่ · คำนำหน้า · ชื่อ · สกุล · เบอร์โทร · E-mail · ตำบล รายการในช่อง “ตำบล” จะเป็นตัวเลือกศูนย์การเรียนรู้ในหน้าผู้เรียน (แอดมิน = แอดมิน, ผู้อำนวยการ/ครู = หัวหน้างาน)</p>
-  <div class="tblwrap"><table class="t"><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ – สกุล</th><th>บทบาท</th><th>ศูนย์การเรียนรู้</th><th>รหัสผ่าน</th><th></th></tr></thead><tbody>
-  ${st.staff.map(s=>`<tr><td><b>${esc(s.first)}</b></td><td>${esc(s.title||'')}${esc(s.first)} ${esc(s.last||'')}</td><td><span class="pill ${s.role==='teacher'?'closed':'role'}">${ROLES[s.role]||s.role}</span></td><td>${esc(s.center||(s.role==='teacher'?'-':'ทุกศูนย์'))}</td><td>${s.ph4?'เบอร์ลงท้าย '+esc(s.ph4):'<span class="pill fail">ยังไม่มีเบอร์</span>'}</td><td><button class="btn ghost sm" data-u="${s.id}" type="button">แก้ไข</button></td></tr>`).join('')}</tbody></table></div>`;
+  <p class="note" style="margin-bottom:12px">ไฟล์ Excel ใช้หัวตาราง: ที่ · คำนำหน้า · ชื่อ · สกุล · ตำแหน่ง · เบอร์โทร · E-mail · ตำบล รายการในช่อง “ตำบล” จะเป็นตัวเลือกศูนย์การเรียนรู้ในหน้าผู้เรียน ช่อง “ตำแหน่ง” จะแสดงใต้ลายมือชื่อในเอกสาร พต. (แอดมิน = แอดมิน, ผู้อำนวยการ/ครู = หัวหน้างาน)</p>
+  <div class="tblwrap"><table class="t"><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ – สกุล</th><th>ตำแหน่ง</th><th>บทบาท</th><th>ศูนย์การเรียนรู้</th><th>รหัสผ่าน</th><th></th></tr></thead><tbody>
+  ${st.staff.map(s=>`<tr><td><b>${esc(s.first)}</b></td><td>${esc(s.title||'')}${esc(s.first)} ${esc(s.last||'')}</td><td>${s.jobTitle?esc(s.jobTitle):`<span class="muted" title="ยังไม่ได้กำหนด ใช้ค่าเริ่มต้น">${esc(defaultJob(s)||'-')}</span>`}</td><td><span class="pill ${s.role==='teacher'?'closed':'role'}">${ROLES[s.role]||s.role}</span></td><td>${esc(s.center||(s.role==='teacher'?'-':'ทุกศูนย์'))}</td><td>${s.ph4?'เบอร์ลงท้าย '+esc(s.ph4):'<span class="pill fail">ยังไม่มีเบอร์</span>'}</td><td><button class="btn ghost sm" data-u="${s.id}" type="button">แก้ไข</button></td></tr>`).join('')}</tbody></table></div>`;
   $('#u-add').onclick=()=>{st.editUser={role:'teacher'};renderStaff()};
   $('#u-xlsx').onchange=async e=>{const f=e.target.files[0];if(f){try{await importExcel(f)}catch(err){toast('นำเข้าไม่สำเร็จ')}}};
   $$('[data-u]').forEach(b=>b.onclick=()=>{st.editUser={...st.staff.find(s=>s.id===b.dataset.u)};renderStaff()});
@@ -883,7 +891,7 @@ async function importExcel(file){
   for(const r of rows.slice(hi+1)){const first=String(r[ix('ชื่อ')]||'').trim();if(!first)continue;order++;
     const pos=String(r[ix('ตำบล')]||'').trim(),[role,center]=roleFromPos(pos);
     const old=st.staff.find(s=>(s.first||'').trim()===first)||{};
-    const d={...old,order,title:String(r[ix('คำนำหน้า')]||'').trim(),first,last:String(r[ix('สกุล')]||'').trim(),email:String(r[ix('E-mail')]||'').trim(),role,center,position:pos};
+    const d={...old,order,title:String(r[ix('คำนำหน้า')]||'').trim(),first,last:String(r[ix('สกุล')]||'').trim(),email:String(r[ix('E-mail')]||'').trim(),role,center,position:pos,jobTitle:ix('ตำแหน่ง')>=0?String(r[ix('ตำแหน่ง')]||'').trim():(old.jobTitle||'')};
     let ph=String(r[ix('เบอร์โทร')]||'').replace(/\D/g,'');if(ph.length===9)ph='0'+ph;
     if(S.mode==='fb'){
       if(old.id===st.me.id){d.role=old.role} // never replace or demote the signed-in admin
@@ -925,7 +933,7 @@ function tabSettings(){
       const sc=Math.min(1,500/img.width,180/img.height),cv=document.createElement('canvas');cv.width=Math.round(img.width*sc);cv.height=Math.round(img.height*sc);
       const g=cv.getContext('2d');g.drawImage(img,0,0,cv.width,cv.height);const d=g.getImageData(0,0,cv.width,cv.height),px=d.data;
       for(let i=0;i<px.length;i+=4){const l=(px[i]+px[i+1]+px[i+2])/3;if(l>200)px[i+3]=0;else if(l>150)px[i+3]=Math.round(px[i+3]*(200-l)/50)} // white paper -> transparent
-      g.putImageData(d,0,0);sigs[k]=cv.toDataURL('image/png');$('#p-'+k).innerHTML=`<img alt="" src="${sigs[k]}" style="max-width:100%;max-height:76px">`;URL.revokeObjectURL(img.src)};img.src=URL.createObjectURL(file)};
+      g.putImageData(d,0,0);sigs[k]=cv.toDataURL('image/png');trimImg(sigs[k]).then(t=>{sigs[k]=t;$('#p-'+k).innerHTML=`<img alt="" src="${t}" style="max-width:100%;max-height:76px">`});$('#p-'+k).innerHTML=`<img alt="" src="${sigs[k]}" style="max-width:100%;max-height:76px">`;URL.revokeObjectURL(img.src)};img.src=URL.createObjectURL(file)};
     $('#x-'+k).onclick=()=>{sigs[k]='';$('#p-'+k).innerHTML='<span class="muted">ยังไม่มีลายเซ็น</span>'}});
   $('#sform').onsubmit=async e=>{e.preventDefault();const n={...readForm(e.target),logo,...sigs};delete n[''];try{await S.set('meta/org',n);await loadPublic();toast('บันทึกการตั้งค่าแล้ว')}catch(err){toast('บันทึกไม่สำเร็จ')}};
 }
@@ -1046,7 +1054,7 @@ function certPeriod(a,b){if(!a)return 'ระหว่างวันที่ .
 function certPages(items){return items.map((x,n)=>`<div class="cert"><div class="b1"></div><div class="b2"></div><div class="no">แบบ พต. 14 · เลขที่ ${esc(x.certNo)}</div>
   <div class="in"><div class="logo">${st.org.logo?`<img alt="" src="${esc(st.org.logo)}">`:'สกร.'}</div><div class="org">${esc(st.org.name)}</div><div class="lead">ใบรับรองฉบับนี้ให้ไว้เพื่อแสดงว่า</div><div class="name">${esc(x.name)}</div>
   <div class="txt">ผ่านการฝึกอบรมหลักสูตร <b>${esc(x.course)}</b> จำนวน ${esc(x.hours)} ชั่วโมง</div><div class="txt">${certPeriod(x.startDate,x.endDate)}</div><div class="txt">ณ ${esc(x.place||x.center||'')}</div><div class="txt" style="margin-top:6px">ขอให้มีความสุขความเจริญ</div>
-  <div class="sigs"><div><div class="line">${st.org.sigReg?`<img alt="" src="${esc(st.org.sigReg)}">`:''}</div><span>(${esc(st.org.registrar)||'......................................'})</span><span>หัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง</span></div><div><div class="line">${st.org.sigDir?`<img alt="" src="${esc(st.org.sigDir)}">`:''}</div><span>(${esc(st.org.director)||'......................................'})</span><span>ผู้อำนวยการ${esc(st.org.name)}</span></div></div></div></div>${n<items.length-1?'<div class="html2pdf__page-break"></div>':''}`).join('')}
+  <div class="sigs"><div><div class="line">${st.org.sigReg?`<img alt="" src="${esc(st.org.sigReg)}">`:''}</div><span>(${esc(st.org.registrar)||'......................................'})</span><span>หัวหน้างานการเรียนรู้เพื่อพัฒนาตนเอง</span></div><div><div class="line">${st.org.sigDir?`<img class="big" alt="" src="${esc(st.org.sigDir)}">`:''}</div><span>(${esc(st.org.director)||'......................................'})</span><span>ผู้อำนวยการ${esc(st.org.name)}</span></div></div></div></div>${n<items.length-1?'<div class="html2pdf__page-break"></div>':''}`).join('')}
 /* ----- พต.9 attendance sheets: one page per two training days ----- */
 function courseDays(c){if(!c.startDate)return[];const out=[],d=new Date(c.startDate+'T00:00:00'),e=new Date((c.endDate||c.startDate)+'T00:00:00');let g=0;
   while(d<=e&&g++<90){out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);d.setDate(d.getDate()+1)}return out}
