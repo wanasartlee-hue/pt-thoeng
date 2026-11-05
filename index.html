@@ -888,18 +888,19 @@ function tabPT9(){
 }
 /* ----- fiscal-year overview (admin, supervisor) ----- */
 function tabOverview(){
-  const T=$('#tabbody'),ot=st.ovType||'',cs=visCourses().filter(c=>!ot||centerType(c.center)===ot).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||'')),R=fyRows(cs);
+  const T=$('#tabbody'),ot=st.ovType||'',oa=st.ovArea||'',aL=oa?'ด้าน'+AREAS.find(x=>x[0]===oa)[1]:'',cs=visCourses().filter(c=>(!ot||centerType(c.center)===ot)&&(!oa||(c.area||'career')===oa)).sort((a,b)=>(a.startDate||'').localeCompare(b.startDate||'')),R=fyRows(cs);
   const tot=R.reduce((t,r)=>({apps:t.apps+r.apps,pass:t.pass+r.pass,bud:t.bud+r.bud}),{apps:0,pass:0,bud:0}),centers=new Set(cs.map(c=>c.center));
   const bt=k=>cs.reduce((t,c)=>t+num((c.budget||{})[k]),0);
-  T.innerHTML=`<div class="row" style="margin-bottom:12px"><h2 style="flex:1 1 260px">ภาพรวมปีงบประมาณ พ.ศ. ${esc(st.fy)}${ot?' · '+CTYPES[ot]:''}${st.centerF?' · '+esc(cname(st.centerF)):''}</h2><label class="f" style="min-width:190px">ประเภทศูนย์<select id="ov-type">${opt('',ot,'ทั้งหมด')}${Object.entries(CTYPES).map(([k,l])=>opt(k,ot,l)).join('')}</select></label><button class="btn gold" id="ov-pdf" type="button" ${cs.length?'':'disabled'}>พิมพ์ / PDF สรุป</button></div>
+  T.innerHTML=`<div class="row" style="margin-bottom:12px"><h2 style="flex:1 1 260px">ภาพรวมปีงบประมาณ พ.ศ. ${esc(st.fy)}${ot?' · '+CTYPES[ot]:''}${st.centerF?' · '+esc(cname(st.centerF)):''}${aL?'<br><span style="font-size:.8em">'+esc(aL)+'</span>':''}</h2><label class="f" style="min-width:190px">ประเภทศูนย์<select id="ov-type">${opt('',ot,'ทั้งหมด')}${Object.entries(CTYPES).map(([k,l])=>opt(k,ot,l)).join('')}</select></label><label class="f" style="min-width:250px">ด้าน<select id="ov-area">${opt('',oa,'ทั้ง 3 ด้าน')}${AREAS.map(([k,l])=>opt(k,oa,l)).join('')}</select></label><button class="btn gold" id="ov-pdf" type="button" ${cs.length?'':'disabled'}>พิมพ์ / PDF สรุป</button></div>
   <div class="kpis" style="margin-bottom:12px"><div class="kpi"><span>หลักสูตรที่จัด</span><b>${cs.length}</b></div><div class="kpi"><span>ศูนย์การเรียนรู้</span><b>${centers.size}</b></div><div class="kpi"><span>ผู้เข้ารับการอบรม</span><b>${tot.apps}</b></div><div class="kpi"><span>ผู้ผ่านการอบรม</span><b>${tot.pass}</b></div><div class="kpi"><span>งบประมาณรวม (บาท)</span><b>${baht(tot.bud)}</b></div></div>
   <div class="kpis" style="margin-bottom:16px">${BUDGET.map(([k,l])=>`<div class="kpi"><span>${l}</span><b style="font-size:18px">${baht(bt(k))}</b></div>`).join('')}</div>
   ${cs.length?`<div class="tblwrap"><table class="t"><thead><tr><th class="n">ที่</th><th>หลักสูตร</th><th>ศูนย์ / สถานที่</th><th>ครูผู้รับผิดชอบ</th><th>วันที่</th><th class="n">ชม.</th><th class="n">ผู้เรียน</th><th class="n">ผ่าน</th><th class="n">งบประมาณ</th><th>สถานะ</th></tr></thead><tbody>
   ${R.map((r,i)=>{const [k,l]=statusOf(r.c);return `<tr><td class="n">${i+1}</td><td><b>${esc(r.c.name)}</b></td><td>${esc(cname(r.c.center))}${r.c.place?'<br><span class="muted">'+esc(r.c.place)+'</span>':''}</td><td>${esc(teacherOf(r.c.center))}</td><td>${thStamp(r.c.startDate?Date.parse(r.c.startDate+'T00:00:00'):0)||'-'}</td><td class="n">${esc(r.c.hours)}</td><td class="n">${r.apps}</td><td class="n">${r.pass}</td><td class="n">${baht(r.bud)}</td><td><span class="pill ${k}">${l}</span></td></tr>`}).join('')}
   <tr><td></td><td colspan="5"><b>รวมทั้งปีงบประมาณ</b></td><td class="n"><b>${tot.apps}</b></td><td class="n"><b>${tot.pass}</b></td><td class="n"><b>${baht(tot.bud)}</b></td><td></td></tr></tbody></table></div>`
   :`<div class="empty">ยังไม่มีหลักสูตรในปีงบประมาณ ${esc(st.fy)}</div>`}`;
-  $('#ov-pdf').onclick=()=>openDoc('fysum',{fy:st.fy,cs,type:ot});
+  $('#ov-pdf').onclick=()=>openDoc('fysum',{fy:st.fy,cs,type:ot,area:aL});
   $('#ov-type').onchange=e=>{st.ovType=e.target.value;renderStaff()};
+  $('#ov-area').onchange=e=>{st.ovArea=e.target.value;renderStaff()};
 }
 
 /* ----- Prompt สร้างอินโฟกราฟิก (fills the office's infographic prompt template from course data) ----- */
@@ -1250,7 +1251,7 @@ const DOCS={
  pt14:({c,list})=>certPages(list.map(({a,i})=>certItem(c,a,i))),
  pt14pub:items=>certPages(items),
  pt9a:c=>pt9Doc(c,'a'),pt9b:c=>pt9Doc(c,'b'),pt9t:c=>pt9Doc(c,'t'),
- fysum:({fy,cs,type})=>fySumDoc(fy,cs,type)
+ fysum:({fy,cs,type,area})=>fySumDoc(fy,cs,type,area)
 };
 const TH_MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 function certPeriod(a,b){if(!a)return 'ระหว่างวันที่ ........ เดือน ................ พ.ศ. ........';const P=x=>{const [y,m,d]=x.split('-').map(Number);return{d,m:TH_MONTHS[m-1],y:y+543}};const s=P(a),e=P(b||a);
@@ -1294,9 +1295,9 @@ function fyRows(cs){return cs.map(c=>({c,apps:appsOf(c).length,pass:passedOf(c).
 /* center type from its name: ศศช. = ศูนย์การเรียนชุมชนชาวไทยภูเขาฯ; everything else (ศกร., ศรช.) counts as tambon level */
 const CTYPES={skr:'ศกร.ตำบล',ssc:'ศศช.'};
 const centerType=c=>/^ศศช/.test(cname(c))?'ssc':'skr';
-function fySumDoc(fy,cs,type){const R=fyRows(cs),T=R.reduce((t,r)=>({apps:t.apps+r.apps,pass:t.pass+r.pass,bud:t.bud+r.bud}),{apps:0,pass:0,bud:0});
+function fySumDoc(fy,cs,type,area){const R=fyRows(cs),T=R.reduce((t,r)=>({apps:t.apps+r.apps,pass:t.pass+r.pass,bud:t.bud+r.bud}),{apps:0,pass:0,bud:0});
   const bt=k=>cs.reduce((t,c)=>t+num((c.budget||{})[k]),0);const byC={};R.forEach(r=>{const k=r.c.center;byC[k]=byC[k]||{n:0,apps:0,pass:0,bud:0};byC[k].n++;byC[k].apps+=r.apps;byC[k].pass+=r.pass;byC[k].bud+=r.bud});
-  return `<div class="hd"><b>ปีงบประมาณ พ.ศ. ${esc(fy)}</b></div><h2>สรุปการจัดการเรียนรู้หลักสูตรส่งเสริมอาชีพ</h2><p class="ctr"><b>${esc(st.org.name)} จังหวัด${esc(st.org.province)}</b><br>ปีงบประมาณ พ.ศ. ${esc(fy)}${type?' · '+CTYPES[type]:''}${st.centerF?' · '+esc(cname(st.centerF)):''}</p>
+  return `<div class="hd"><b>ปีงบประมาณ พ.ศ. ${esc(fy)}</b></div><h2>สรุปการจัดการเรียนรู้หลักสูตรส่งเสริมอาชีพ</h2><p class="ctr"><b>${esc(st.org.name)} จังหวัด${esc(st.org.province)}</b><br>ปีงบประมาณ พ.ศ. ${esc(fy)}${type?' · '+CTYPES[type]:''}${st.centerF?' · '+esc(cname(st.centerF)):''}${area?'<br>'+esc(area):''}</p>
   <p>จำนวนหลักสูตร <b>${cs.length}</b> หลักสูตร · ศูนย์การเรียนรู้ <b>${Object.keys(byC).length}</b> แห่ง · ผู้เข้ารับการอบรม <b>${T.apps}</b> คน · ผู้ผ่าน <b>${T.pass}</b> คน · งบประมาณรวม <b>${baht(T.bud)}</b> บาท</p>
   <h4>รายหลักสูตร</h4><table class="rep small tl" style="table-layout:fixed"><colgroup><col style="width:5%"><col style="width:20%"><col style="width:20%"><col style="width:16%"><col style="width:13%"><col style="width:5%"><col style="width:6%"><col style="width:5%"><col style="width:10%"></colgroup>
   <thead><tr><th>ที่</th><th>หลักสูตร</th><th>ศูนย์ / สถานที่</th><th>ครูผู้รับผิดชอบ</th><th>วันที่</th><th>ชม.</th><th>ผู้เรียน</th><th>ผ่าน</th><th>งบประมาณ (บาท)</th></tr></thead>
