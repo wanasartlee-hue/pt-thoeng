@@ -133,6 +133,20 @@ select.sel-open option{background:#fff;color:var(--ink);font-weight:400}
 .paper .s9 .rl{white-space:nowrap}
 .paper .s9 .c{grid-column:1/3;justify-self:center;width:0;display:flex;justify-content:center;white-space:nowrap}
 .paper .tl td.l{text-align:left}
+.paper .p11{font-size:18.5px;line-height:1.25}
+.paper .p11 h2{font-size:22px}
+.paper .p11 .hd b{font-size:19px}
+.paper .p11 .ln{margin:1px 0}
+.paper .p11 h4{font-family:var(--f-doc);font-size:18.5px;font-weight:700;margin:8px 0 1px}
+.paper .p11 .q{font-weight:700;margin-top:5px}
+.paper .wl{position:relative;line-height:26px;min-height:52px;white-space:pre-wrap;word-break:break-word}
+.paper .wl .rl{position:absolute;left:0;right:0;height:26px;border-bottom:1.5px dotted #000;z-index:0;pointer-events:none}
+.paper .wl .wt{position:relative;z-index:1}
+.paper .wl .wk{position:relative;z-index:1;font-weight:700;background:#fff;padding:0 6px 4px 0}
+.paper .s11w{display:grid;justify-content:end;gap:26px;margin-top:30px;padding-right:4%;break-inside:avoid;page-break-inside:avoid}
+.paper .s11w .s9{grid-template-columns:auto 210px auto}
+.paper .s11w .s9 .c{grid-column:2/3}
+.paper .s11w .s9 .dt{grid-column:2/4;white-space:nowrap;padding-left:14px}
 .paper tr.tot td{font-weight:700}
 .tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--r);background:var(--white)}
 table.t{border-collapse:collapse;width:100%;font-size:14px}
@@ -615,7 +629,7 @@ async function renderStaff(){
   if(!st.me)return renderLogin();
   if(!st.staffLoaded){$('#app').innerHTML='<div class="empty">กำลังโหลดข้อมูลบุคลากรและผู้เรียน…</div>';try{await loadStaffData();st.staffLoaded=true}catch(e){$('#app').innerHTML='<div class="empty">โหลดข้อมูลไม่สำเร็จ</div>';return}}
   startWatch();
-  const me=st.me,tabs=[['inbox',inboxLabel()],['courses','หลักสูตร & งบประมาณ'],['pt8','พต.8 รายชื่อผู้สมัคร'],['pt9','พต.9 ลงเวลา'],['pt10','พต.10 ประเมินผล'],['pt13','พต.13 รายงาน & อนุมัติ'],['pt14','พต.14 ใบรับรอง'],['forms','พต.1 / 12 / 20'],['prompt','Prompt สร้างอินโฟกราฟิก']];
+  const me=st.me,tabs=[['inbox',inboxLabel()],['courses','หลักสูตร & งบประมาณ'],['pt8','พต.8 รายชื่อผู้สมัคร'],['pt9','พต.9 ลงเวลา'],['pt10','พต.10 ประเมินผล'],['pt11','พต.11 นิเทศ'],['pt13','พต.13 รายงาน & อนุมัติ'],['pt14','พต.14 ใบรับรอง'],['forms','พต.1 / 12 / 20'],['prompt','Prompt สร้างอินโฟกราฟิก']];
   const prevTabScroll=$('.tabs')?$('.tabs').scrollLeft:(st.tabScroll||0);
   if(isAll())tabs.push(['overview','ภาพรวมปีงบประมาณ']);
   if(me.role==='admin')tabs.push(['users','ผู้ใช้งาน'],['settings','ตั้งค่า']);
@@ -638,7 +652,7 @@ async function renderStaff(){
   if($('#s-centerf'))$('#s-centerf').onchange=e=>{st.centerF=e.target.value;renderStaff()};
   $('#s-fy').onchange=e=>{st.fy=e.target.value;st.courseId='';st.inCourse='';renderStaff()};
   if(!tabs.find(t=>t[0]===st.tab))st.tab='inbox';
-  ({prompt:tabPrompt,inbox:tabInbox,overview:tabOverview,pt9:tabPT9,courses:tabCourses,pt8:tabPT8,pt10:tabPT10,pt13:tabPT13,pt14:tabPT14,forms:tabForms,users:tabUsers,settings:tabSettings})[st.tab]();
+  ({prompt:tabPrompt,inbox:tabInbox,overview:tabOverview,pt9:tabPT9,courses:tabCourses,pt8:tabPT8,pt10:tabPT10,pt11:tabPT11,pt13:tabPT13,pt14:tabPT14,forms:tabForms,users:tabUsers,settings:tabSettings})[st.tab]();
 }
 async function renderLogin(){
   if(S.mode==='fb'&&!st.setupChecked){$('#app').innerHTML='<div class="empty">กำลังตรวจสอบระบบ…</div>';try{st.setupDone=!!(await S.get('meta/setup'))}catch(e){st.setupDone=true}st.setupChecked=true}
@@ -686,7 +700,7 @@ function stopWatch(){(st.unsub||[]).forEach(f=>{try{f()}catch(e){}});st.unsub=nu
 function liveRefresh(){
   if(st.page!=='staff'||!st.me||!st.staffLoaded)return;
   const tb=$('.tabs [data-tab=inbox]');if(tb)tb.textContent=inboxLabel();
-  if(st.editCourse||st.editUser||!$('#modal').hidden||['pt10','pt13','settings','users','prompt'].includes(st.tab))return; // don't disturb a form being filled
+  if(st.editCourse||st.editUser||!$('#modal').hidden||['pt10','pt11','pt13','settings','users','prompt'].includes(st.tab))return; // don't disturb a form being filled
   const y=window.scrollY;renderStaff().then(()=>window.scrollTo(0,y));
 }
 const visCourses=()=>st.courses.filter(c=>fyOf(c)===st.fy&&(isAll()?(!st.centerF||c.center===st.centerF):c.center===st.me.center));
@@ -794,6 +808,33 @@ function tabPT10(){
   $('#p10-pdf').onclick=()=>openDoc('pt10',c);
 }
 function rowEval(tr){const o={};tr.querySelectorAll('input').forEach(i=>o[i.dataset.f]=i.value);return o}
+
+/* ----- พต.11 บันทึกการนิเทศ ----- */
+function tabPT11(){
+  const T=$('#tabbody');T.innerHTML=coursePicker();const c=curCourse();if(!c){T.innerHTML+='<div class="empty">ยังไม่มีหลักสูตร</div>';bindPicker();return}
+  const v=c.sup||{},it=v.items||[],ed=can('supervisor'),dis=ed?'':'disabled',me=`${st.me.title||''}${st.me.first} ${st.me.last||''}`.trim();
+  const ta=(n,val,ph)=>`<textarea name="${n}" rows="2" ${dis} placeholder="${ph}">${esc(val||'')}</textarea>`;
+  T.innerHTML+=`<form class="sheet stack" id="p11f"><div class="row"><h2 style="flex:1">บันทึกการนิเทศการฝึกอบรม</h2>${v.at?`<span class="muted">บันทึกล่าสุด ${esc(v.by||'')} · ${thStamp(v.at)}</span>`:''}</div>
+   ${ed?'':`<p class="muted">${v.at?'ผู้นิเทศบันทึกไว้แล้ว ครูดูและดาวน์โหลด PDF ได้':'ยังไม่มีการนิเทศหลักสูตรนี้ (หัวหน้างาน/ผู้นิเทศเป็นผู้บันทึก)'}</p>`}
+   <div class="sec"><legend>ตอนที่ 1 ข้อมูลทั่วไป</legend><div class="grid">
+    ${inp('project','1. โครงการ',`value="${esc(v.project||'')}" ${dis} placeholder="ชื่อโครงการ"`)}
+    <label class="f">3. รูปแบบ<select name="mode" ${dis}>${P11M.map(([k,l])=>opt(k,v.mode||'group',l)).join('')}</select></label>
+    ${inp('date','วันที่นิเทศ',`type="date" value="${esc(v.date||new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10))}" ${dis}`)}
+    ${inp('enrolled','6. จำนวนผู้เรียนที่สมัครเรียน (คน)',`type="number" min="0" value="${esc(v.enrolled??appsOf(c).length)}" ${dis}`)}
+    ${inp('attend','จำนวนผู้เรียนที่มาเรียนในวันที่นิเทศ (คน)',`type="number" min="0" value="${esc(v.attend??'')}" ${dis}`)}</div>
+    <p class="muted">หลักสูตร ชั่วโมง วันที่ วิทยากร และสถานที่ ดึงจากข้อมูลหลักสูตรอัตโนมัติ: ${esc(c.name)} · ${esc(c.hours||'-')} ชม. · ${esc(shortRange(c.startDate,c.endDate)||'-')} · วิทยากร ${esc(c.trainerName||'-')}</p></div>
+   <div class="sec"><legend>ตอนที่ 2 การจัดกระบวนการเรียนรู้</legend>
+    ${PT11Q.map((q,i)=>`<div class="stack" style="gap:6px;margin-bottom:12px"><b>${i+1}. ${q}</b><div class="grid g2"><label class="f">สภาพที่พบ${ta('f'+i,(it[i]||{}).f,'สิ่งที่พบจากการนิเทศ')}</label><label class="f">ข้อนิเทศ${ta('a'+i,(it[i]||{}).a,'คำแนะนำของผู้นิเทศ')}</label></div></div>`).join('')}
+    <label class="f">ข้อเสนอแนะเพื่อการพัฒนา${ta('suggest',v.suggest,'')}</label></div>
+   <div class="sec"><legend>ผู้ลงนาม</legend><div class="grid g2">${inp('receiver','ผู้รับการนิเทศ',`value="${esc(v.receiver||teacherOf(c.center))}" ${dis}`)}${inp('by','ผู้นิเทศ',`value="${esc(v.by||(ed?me:''))}" ${dis}`)}</div></div>
+   <div class="row">${ed?'<button class="btn" type="submit">บันทึกการนิเทศ</button>':''}<button class="btn gold" type="button" id="p11-pdf">PDF แบบ พต.11</button>${ed&&v.at?'<button class="btn danger sm" type="button" id="p11-del">ลบบันทึกการนิเทศ</button>':''}</div></form>`;
+  bindPicker();
+  const f=$('#p11f');
+  const collect=()=>{const o=readForm(f);return{project:o.project||'',mode:o.mode||'group',date:o.date||'',enrolled:o.enrolled,attend:o.attend,items:PT11Q.map((_,i)=>({f:o['f'+i]||'',a:o['a'+i]||''})),suggest:o.suggest||'',receiver:o.receiver||'',by:o.by||''}};
+  f.onsubmit=async e=>{e.preventDefault();const sup={...collect(),at:Date.now(),uid:st.me.id};try{await S.update('courses/'+c.id,{sup});c.sup=sup;toast('บันทึกการนิเทศ พต.11 แล้ว');renderStaff()}catch(err){toast('บันทึกไม่สำเร็จ')}};
+  $('#p11-pdf').onclick=()=>openDoc('pt11',ed?{...c,sup:{...v,...collect()}}:c);
+  if($('#p11-del'))armDelete($('#p11-del'),async()=>{await S.update('courses/'+c.id,{sup:null});c.sup=null;toast('ลบบันทึกการนิเทศแล้ว');renderStaff()});
+}
 
 /* ----- พต.13 + approval ----- */
 function tabPT13(){
@@ -1087,7 +1128,27 @@ const sigRow=(role,name,pos)=>`<div class="sgx"><span class="lbl">(ลงชื�
 const sigBlock=(role,name,...extra)=>`<div class="sg"><span>(ลงชื่อ)</span><span class="dl"></span><span>${role}</span><span class="c2">(${esc(name)||'......................................'})</span>${extra.map(x=>`<span class="c2">${x}</span>`).join('')}</div>`;
 const courseHead=c=>ln('โครงการ/หลักสูตร',[c.name])+ln('จำนวน',[c.hours,90],'ชั่วโมง')+ln('ระหว่างวันที่',[thDate(c.startDate)+(c.endDate?' ถึง '+thDate(c.endDate):'')])+ln('สถานที่จัด ณ',[c.place&&c.place.includes(cname(c.center))?c.place:[c.place,cname(c.center)].filter(Boolean).join(' ')]);
 
+const wl=(label,text,min=2)=>`<div class="wl" data-min="${min}">${label?`<span class="wk">${label}</span> `:''}<span class="wt">${esc(text||'')}</span></div>`;
+function fixLines(root){root.querySelectorAll('.wl').forEach(w=>{w.querySelectorAll('.rl').forEach(x=>x.remove());w.style.minHeight='';const L=parseFloat(getComputedStyle(w).lineHeight)||26,n=Math.max(+w.dataset.min||2,Math.round(w.scrollHeight/L));w.style.minHeight=n*L+'px';for(let i=0;i<n;i++){const d=document.createElement('div');d.className='rl';d.style.top=(i*L)+'px';w.prepend(d)}})}
+const PT11Q=['มีการจัดกิจกรรมตามโครงการ/แผนการจัดการเรียนรู้ตามหลักสูตรหรือไม่อย่างไร','กิจกรรมตามโครงการ/แผนการจัดการเรียนรู้สอดคล้องกับหลักสูตรหรือไม่','วิทยากรใช้สื่อ/วัสดุอุปกรณ์ ประกอบกิจกรรมการเรียนรู้อย่างเหมาะสมหรือไม่','การถ่ายทอดความรู้และประสบการณ์ของวิทยากร','ผู้เรียนมีส่วนร่วมในการจัดกิจกรรมหรือไม่ อย่างไร','เครือข่ายมีส่วนร่วมในการจัดกิจกรรมหรือไม่ อย่างไร','การวัดผล ประเมินผล ทั้งภาคทฤษฎีและปฏิบัติ เป็นอย่างไร เหมาะสมหรือไม่'];
+const P11M=[['group','การฝึกอบรมประชาชน'],['individual','การเรียนรู้รายบุคคล']];
+const sig11=(role,name,date)=>`<div class="s9"><span>ลงชื่อ</span><span class="dl"></span><span class="rl">${role}</span><span class="c">(${esc(name)||'..................................................'})</span><span class="dt">วันที่ ${date?esc(date):'..........................................'}</span></div>`;
 const DOCS={
+ pt11:c=>{const v=c.sup||{},it=v.items||[],P=x=>{if(!x)return{d:'',m:'',y:''};const [y,m,d]=x.split('-').map(Number);return{d,m:TH_MONTHS[m-1],y:y+543}},a=P(c.startDate),b=P(c.endDate||c.startDate);
+  return `<div class="p11"><div class="hd"><b>แบบ พต.11</b></div><h2>บันทึกการนิเทศการฝึกอบรม</h2>
+  <p class="ctr" style="white-space:nowrap;font-size:16px;letter-spacing:-.2px">ชื่อสถานศึกษา ${esc(st.org.name)} สำนักงานส่งเสริมการเรียนรู้ประจำจังหวัด${esc(st.org.province)}</p>
+  <h4>ตอนที่ 1 ข้อมูลทั่วไป</h4>
+  ${ln('1. โครงการ',[v.project])}${ln('2. หลักสูตร',[c.name])}
+  <div class="ln"><span class="lb">3. รูปแบบ</span></div>
+  <div class="ln ind">${P11M.map(([k,l])=>CB((v.mode||'group')===k,l)).join('')}<span class="lb">จำนวน</span>${fld(c.hours,70,1)}<span class="lb">ชั่วโมง</span></div>
+  <div class="ln ind" style="flex-wrap:nowrap;column-gap:3px;padding-left:8px">${['ระหว่างวันที่',a.d,24,'เดือน',a.m,62,'พ.ศ.',a.y,36,'ถึง วันที่',b.d,24,'เดือน',b.m,62,'พ.ศ.',b.y,36].reduce((h,x,i,A)=>i%3===0?h+`<span class="lb">${x}</span>`+fld(A[i+1],A[i+2],1):h,'')}</div>
+  ${ln('4. ชื่อวิทยากร',[c.trainerName])}${ln('5. สถานที่',[placeOf(c)])}
+  ${ln('หมู่',[c.moo,50,1],'ตำบล',[c.tambon,150,1],`อำเภอ${esc(c.amphoe||st.org.district)} จังหวัด${esc(c.province||st.org.province)}`)}
+  <div class="ln" style="flex-wrap:nowrap;column-gap:4px"><span class="lb">6. จำนวนผู้เรียนที่สมัครเรียน</span>${fld(v.enrolled??appsOf(c).length,44,1)}<span class="lb">คน จำนวนผู้เรียนที่มาเรียนในวันที่นิเทศ</span>${fld(v.attend,44,1)}<span class="lb">คน</span></div>
+  <h4>ตอนที่ 2 การจัดกระบวนการเรียนรู้</h4>
+  ${PT11Q.map((q,i)=>`<div class="avoid"><p class="q">${i+1}. ${q}</p>${wl('สภาพที่พบ',(it[i]||{}).f)}${wl('ข้อนิเทศ',(it[i]||{}).a)}</div>`).join('')}
+  <div class="avoid"><p class="q">ข้อเสนอแนะเพื่อการพัฒนา</p>${wl('',v.suggest)}</div>
+  <div class="s11w">${sig11('ผู้รับการนิเทศ',v.receiver||teacherOf(c.center),v.date?thDate(v.date):'')}${sig11('ผู้นิเทศ',v.by,v.date?thDate(v.date):'')}</div></div>`},
  pt1:d=>{const has=(k,v)=>(d[k]||[]).includes(v);return `<div class="hd"><b>แบบ พต. 1</b></div>
   <h2>แบบสำรวจความต้องการการจัดการเรียนรู้เพื่อการพัฒนาตนเอง</h2><p class="ctr"><b>สำหรับประชาชน</b></p><p class="ctr">${esc(cname(d.center))} ${esc(st.org.name)}</p><div class="gap"></div>
   <h4>ส่วนที่ 1 ข้อมูลส่วนตัว</h4><div class="ind">
@@ -1234,7 +1295,7 @@ function fySumDoc(fy,cs,type){const R=fyRows(cs),T=R.reduce((t,r)=>({apps:t.apps
   <h4>รายศูนย์การเรียนรู้</h4><table class="rep small tl" style="table-layout:fixed"><colgroup><col style="width:6%"><col style="width:30%"><col style="width:24%"><col style="width:10%"><col style="width:10%"><col style="width:8%"><col style="width:12%"></colgroup>
   <thead><tr><th>ที่</th><th>ศูนย์การเรียนรู้</th><th>ครูผู้รับผิดชอบ</th><th>หลักสูตร</th><th>ผู้เรียน</th><th>ผ่าน</th><th>งบประมาณ (บาท)</th></tr></thead>
   <tbody>${Object.entries(byC).map(([k,v],i)=>`<tr><td>${i+1}</td><td class="l">${esc(cname(k))}</td><td class="l">${esc(teacherOf(k))}</td><td>${v.n}</td><td>${v.apps}</td><td>${v.pass}</td><td style="text-align:right">${baht(v.bud)}</td></tr>`).join('')}</tbody></table>`}
-const TITLES={pt14pub:'แบบ พต.14 ใบรับรองผ่านการฝึกอบรม',pt9a:'แบบ พต.9 บัญชีลงเวลา (อาชีพ)',pt9b:'แบบ พต.9 บัญชีลงเวลา (ทักษะชีวิต/สังคม)',pt9t:'แบบ พต.9 บัญชีลงเวลาวิทยากร',fysum:'สรุปปีงบประมาณ',pt1:'แบบ พต.1 แบบสำรวจความต้องการ',pt2:'แบบ พต.2 ใบสมัคร',pt8:'แบบ พต.8 บัญชีรายชื่อผู้สมัคร',pt10:'แบบ พต.10 แบบประเมินผล',pt12:'แบบ พต.12 แบบประเมินความพึงพอใจ',pt12s:'แบบ พต.12 สรุปความพึงพอใจ',pt13:'แบบ พต.13 รายงานผลการฝึกอบรม',pt14:'แบบ พต.14 ใบรับรองผ่านการฝึกอบรม',pt20:'แบบ พต.20 แบบติดตามผู้ผ่านการฝึกอบรม',pt20one:'แบบ พต.20 แบบติดตามผู้ผ่านการฝึกอบรม'};
+const TITLES={pt11:'แบบ พต.11 บันทึกการนิเทศการฝึกอบรม',pt14pub:'แบบ พต.14 ใบรับรองผ่านการฝึกอบรม',pt9a:'แบบ พต.9 บัญชีลงเวลา (อาชีพ)',pt9b:'แบบ พต.9 บัญชีลงเวลา (ทักษะชีวิต/สังคม)',pt9t:'แบบ พต.9 บัญชีลงเวลาวิทยากร',fysum:'สรุปปีงบประมาณ',pt1:'แบบ พต.1 แบบสำรวจความต้องการ',pt2:'แบบ พต.2 ใบสมัคร',pt8:'แบบ พต.8 บัญชีรายชื่อผู้สมัคร',pt10:'แบบ พต.10 แบบประเมินผล',pt12:'แบบ พต.12 แบบประเมินความพึงพอใจ',pt12s:'แบบ พต.12 สรุปความพึงพอใจ',pt13:'แบบ พต.13 รายงานผลการฝึกอบรม',pt14:'แบบ พต.14 ใบรับรองผ่านการฝึกอบรม',pt20:'แบบ พต.20 แบบติดตามผู้ผ่านการฝึกอบรม',pt20one:'แบบ พต.20 แบบติดตามผู้ผ่านการฝึกอบรม'};
 let curDoc=null;
 function openDoc(type,data){
   if(!data)return;const land=type==='pt14'||type==='pt14pub',wide=type==='pt20'||type==='pt20one';
@@ -1244,7 +1305,7 @@ function openDoc(type,data){
   curDoc={land,wide,filename:`${TITLES[type].split(' ').slice(0,2).join('')}-${nm}`.replace(/[\\/:*?"<>|]+/g,'-').slice(0,90)+'.pdf'};
   $('#pagestyle').textContent=land||wide?'@page{size:A4 landscape;margin:0}':'@page{size:A4 portrait;margin:0}';
   $('#modal').hidden=false;$('#mclose').focus();
-  if(!land){const el=$('#docel');(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>requestAnimationFrame(()=>{try{paginate(el,wide?680:971)}catch(e){console.warn(e)}}))}
+  if(!land){const el=$('#docel');(document.fonts?document.fonts.ready:Promise.resolve()).then(()=>requestAnimationFrame(()=>{try{fixLines(el);paginate(el,wide?680:971)}catch(e){console.warn(e)}}))}
 }
 /* Split long tables at page ends and repeat their header rows; explicit .pbreak markers start a new page.
    Page = A4 minus 20 mm top/bottom margins = 257 mm = 971 px at the document's 96 dpi scale. */
@@ -1285,7 +1346,7 @@ $('#mpdf').onclick=async()=>{
   btn.disabled=true;btn.textContent='กำลังสร้าง PDF…';
   try{
     try{await document.fonts.load('21px DocSarabun');await document.fonts.load('bold 21px DocSarabun')}catch(e){}
-    const blob=await html2pdf().set({margin:curDoc.land?0:curDoc.wide?[15,20,15,12]:[20,30,20,12],image:{type:'jpeg',quality:.96},html2canvas:{scale:2,backgroundColor:'#ffffff',onclone:async d=>{try{await Promise.all([d.fonts.load('21px DocSarabun'),d.fonts.load('bold 21px DocSarabun')]);await d.fonts.ready}catch(e){}d.querySelectorAll('.paper,.cert').forEach(thaiBreak)}},jsPDF:{unit:'mm',format:'a4',orientation:curDoc.land||curDoc.wide?'landscape':'portrait'},pagebreak:{mode:['css','legacy'],avoid:['tr','.avoid','p','h4','.sig','h2','.ln','.o','.hd','.sgx']}}).from($('#docel')).save(curDoc.filename);
+    const blob=await html2pdf().set({margin:curDoc.land?0:curDoc.wide?[15,20,15,12]:[20,30,20,12],image:{type:'jpeg',quality:.96},html2canvas:{scale:2,backgroundColor:'#ffffff',onclone:async d=>{try{await Promise.all([d.fonts.load('21px DocSarabun'),d.fonts.load('bold 21px DocSarabun')]);await d.fonts.ready}catch(e){}d.querySelectorAll('.paper,.cert').forEach(thaiBreak)}},jsPDF:{unit:'mm',format:'a4',orientation:curDoc.land||curDoc.wide?'landscape':'portrait'},pagebreak:{mode:['css','legacy'],avoid:['tr','.avoid','.wl','p','h4','.sig','h2','.ln','.o','.hd','.sgx']}}).from($('#docel')).save(curDoc.filename);
     toast('ดาวน์โหลดไฟล์ PDF แล้ว');
   }catch(e){toast('สร้าง PDF ไม่สำเร็จ ลองอีกครั้ง')}
   finally{btn.disabled=false;btn.textContent='ดาวน์โหลด PDF'}
