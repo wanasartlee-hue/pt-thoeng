@@ -221,7 +221,13 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
 .paper .cb.on::after{content:"";position:absolute;left:4px;top:0;width:4px;height:9px;border:solid #000;border-width:0 2px 2px 0;transform:rotate(45deg)}
 .paper .sig{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;text-align:center;page-break-inside:avoid}
 .paper .sig.one{grid-template-columns:1fr;justify-items:end}
-.paper .sg{display:grid;grid-template-columns:auto minmax(150px,1fr) auto;column-gap:2px;align-items:end;row-gap:2px}
+.paper .sigp{display:grid;grid-template-columns:auto minmax(120px,1fr) auto 28px auto minmax(120px,1fr) auto;column-gap:2px;row-gap:2px;align-items:end;margin-top:18px;text-align:center;break-inside:avoid;page-break-inside:avoid}
+.paper .sigp>span{white-space:nowrap}
+.paper .sigp .dl{border-bottom:1.5px dotted #000;height:.75em;margin-bottom:.2em}
+.paper .sigp .c2{white-space:normal;text-align:center;align-self:start}
+.paper .sigp .c2.a{grid-column:1/4}
+.paper .sigp .c2.b{grid-column:5/8}
+.paper .sg{display:grid;grid-template-columns:auto minmax(150px,1fr) auto;column-gap:2px;align-items:end;align-content:start;row-gap:2px}
 .paper .sg .dl{border-bottom:1.5px dotted #000;height:.75em;margin-bottom:.2em}
 .paper .sg>span{white-space:nowrap}
 .paper .sg .c2{grid-column:2;text-align:center;white-space:normal}
@@ -1135,6 +1141,11 @@ function crossTable(title,cats,keyFn,R){
 }
 const ageBand=c=>a=>{const g=num(ageOf(a,c.startDate));return g<15?'ต่ำกว่า 15 ปี':g<40?'15 - 39 ปี':g<60?'40 - 59 ปี':'60 ปีขึ้นไป'};
 const sigRow=(role,name,pos)=>`<div class="sgx"><span class="lbl">(ลงชื่อ)</span><span class="dl"></span><span class="role">${role}</span><span class="r2">(${esc(name)||'......................................'})</span><span class="r2">ตำแหน่ง ${esc(pos)||'......................................'}</span></div>`;
+const sigPair=(L,R)=>{const n=Math.max(L.x.length,R.x.length),x=(a,i)=>a.x[i]||'&nbsp;';
+  let h=`<span>(ลงชื่อ)</span><span class="dl"></span><span>${L.role}</span><span class="gp"></span><span>(ลงชื่อ)</span><span class="dl"></span><span>${R.role}</span>`;
+  h+=`<span class="c2 a">(${esc(L.name)||'......................................'})</span><span class="c2 b">(${esc(R.name)||'......................................'})</span>`;
+  for(let i=0;i<n;i++)h+=`<span class="c2 a">${x(L,i)}</span><span class="c2 b">${x(R,i)}</span>`;
+  return `<div class="sigp">${h}</div>`};
 const sigBlock=(role,name,...extra)=>`<div class="sg"><span>(ลงชื่อ)</span><span class="dl"></span><span>${role}</span><span class="c2">(${esc(name)||'......................................'})</span>${extra.map(x=>`<span class="c2">${x}</span>`).join('')}</div>`;
 const courseHead=c=>ln('โครงการ/หลักสูตร',[c.name])+ln('จำนวน',[c.hours,90],'ชั่วโมง')+ln('ระหว่างวันที่',[thDate(c.startDate)+(c.endDate?' ถึง '+thDate(c.endDate):'')])+ln('สถานที่จัด ณ',[c.place&&c.place.includes(cname(c.center))?c.place:[c.place,cname(c.center)].filter(Boolean).join(' ')]);
 
@@ -1199,7 +1210,7 @@ const DOCS={
   <div class="avoid"><h4>5. กลุ่มเป้าหมาย</h4>${opts(TARGETS.slice(0,-1),v=>d.target===v,4,[d.target==='อื่น ๆ'?(d.targetOther||' '):''])}</div>
   <div class="avoid"><h4>6. วิธีการเรียนรู้</h4>${opts(['แบบรวมกลุ่ม','แบบรายบุคคล โปรดระบุ'],v=>v.startsWith(d.method||'-'),2)}<div class="ind" style="padding-left:48px">${ln('สถานที่/ช่องทางการเรียนรู้ของตน',[d.method==='แบบรายบุคคล'?d.methodPlace:''])}${ln('ชื่อหลักสูตร',[d.method==='แบบรายบุคคล'?c.name:''])}</div></div>
   ${ln('<b>7. ท่านได้รับข่าวสารการรับสมัครจาก</b>',[d.news])}
-  <div class="sig">${sigBlock('ผู้สมัคร',fullName(d),'วันที่ '+thFull(d.at))}${sigBlock('ผู้รับสมัคร',teacherOf(d.center),'ตำแหน่ง '+esc(teacherPosOf(d.center)),'วันที่ '+thFull(d.at))}</div>
+  ${sigPair({role:'ผู้สมัคร',name:fullName(d),x:['','วันที่ '+thFull(d.at)]},{role:'ผู้รับสมัคร',name:teacherOf(d.center),x:['ตำแหน่ง '+esc(teacherPosOf(d.center)),'วันที่ '+thFull(d.at)]})}
   <p class="note">หมายเหตุ 1. หน่วยจัดการเรียนรู้สามารถปรับเปลี่ยนได้ตามความเหมาะสม<br>2. ในกรณีต่างด้าว ต้องมีใบอนุญาตการทำงาน (Work Permit) / หนังสือเดินทาง (passport) หรือเอกสารอื่นที่ทางราชการออกให้ จึงจะสามารถสมัครเรียนได้</p>`},
  pt8:c=>{const A=appsOf(c);return `<div class="hd"><b>แบบ พต. 8</b></div><h2>บัญชีรายชื่อผู้สมัครเรียนหลักสูตรการฝึกอบรม</h2><p class="ctr"><b>${esc(st.org.name)} จังหวัด${esc(st.org.province)}</b><br>${esc(cname(c.center))}</p>${courseHead(c)}
   <table class="rep" style="table-layout:fixed"><colgroup><col style="width:5%"><col style="width:20%"><col style="width:19%"><col style="width:6%"><col style="width:12%"><col style="width:9%"><col style="width:20%"><col style="width:9%"></colgroup><thead><tr><th>ที่</th><th>ชื่อ-สกุล</th><th>เลขบัตรประชาชน</th><th>อายุ</th><th>วุฒิการศึกษา</th><th>อาชีพ</th><th>ที่อยู่ปัจจุบัน</th><th>หมายเหตุ</th></tr></thead><tbody>
