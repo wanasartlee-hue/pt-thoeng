@@ -599,7 +599,7 @@ function renderCertSearch(){
 function renderLearner(){
   if(st.lc.form==='cert')return renderCertSearch();
   const L=st.lc,F=FORMS[L.form];
-  const courses=st.courses.filter(c=>c.center===L.center&&!c.closed&&(L.form!=='pt2'||c.open));
+  const courses=st.courses.filter(c=>c.center===L.center&&!c.closed&&(L.form==='pt2'?c.open:(L.form==='pt12'||L.form==='pt20')?evalOpen(c):true));
   if(L.course&&!courses.find(c=>c.id===L.course))L.course='';
   const c=st.courses.find(x=>x.id===L.course);
   $('#app').innerHTML=`${demoBanner()}
@@ -610,7 +610,7 @@ function renderLearner(){
     <p class="note">${F.foot}</p>
     <div class="grid g2">
       <label class="f">ศูนย์การเรียนรู้ (ตำบล)<select id="l-center" required>${opt('','','— เลือกศูนย์การเรียนรู้ —')}${st.centers.map(v=>opt(v,L.center)).join('')}</select></label>
-      ${F.needCourse?`<label class="f">หลักสูตรที่เปิดสอน<select id="l-course" required ${L.center?'':'disabled'}>${opt('','',L.center?(courses.length?'— เลือกหลักสูตร —':(L.form==='pt2'?'ครูยังไม่ได้เปิดหลักสูตรในศูนย์นี้':'ไม่มีหลักสูตรที่เปิดให้ส่งแบบนี้ (หลักสูตรปิดแล้ว)')):'เลือกศูนย์ก่อน')}${courses.map(x=>opt(x.id,L.course,`${x.name} (${x.hours||'-'} ชม.)`)).join('')}</select></label>`:''}
+      ${F.needCourse?`<label class="f">หลักสูตรที่เปิดสอน<select id="l-course" required ${L.center?'':'disabled'}>${opt('','',L.center?(courses.length?'— เลือกหลักสูตร —':(L.form==='pt2'?'ครูยังไม่ได้เปิดหลักสูตรในศูนย์นี้':'ยังไม่มีหลักสูตรที่เปิดให้ทำแบบนี้ (เปิดเมื่อถึงวันสุดท้ายของการอบรม)')):'เลือกศูนย์ก่อน')}${courses.map(x=>opt(x.id,L.course,`${x.name} (${x.hours||'-'} ชม.)`)).join('')}</select></label>`:''}
     </div>
     ${c?`<div class="coursecard"><b>${esc(c.name)}</b><span>${thDate(c.startDate)}${c.endDate?' – '+thDate(c.endDate):''} · ${esc(c.hours||'-')} ชั่วโมง</span><span>สถานที่: ${esc(c.place||'-')} ${c.moo?'หมู่ '+esc(c.moo):''} ต.${esc(c.tambon||'-')} · วิทยากร: ${esc(c.trainerName||'-')}</span></div>`:''}
     <div class="stack" id="lbody">${(!L.center||(F.needCourse&&!L.course))?`<div class="empty">${!L.center?'เลือกศูนย์การเรียนรู้ด้านบนเพื่อเริ่มกรอกแบบ '+F.no:'เลือกหลักสูตรเพื่อเริ่มกรอกแบบ '+F.no}</div>`:F.build()}</div>
@@ -627,6 +627,7 @@ async function submitLearner(e){
   if(L.form==='pt2'&&!/^[0-9A-Za-z-]{6,20}$/.test(f.elements.idcard.value.replace(/\s/g,''))){toast('เลขบัตรประชาชนไม่ถูกต้อง');return}
   const c=st.courses.find(x=>x.id===L.course);
   if(c&&c.closed){toast('หลักสูตรนี้ปิดแล้ว ไม่สามารถส่งแบบได้');return}
+  if(c&&(L.form==='pt12'||L.form==='pt20')&&!evalOpen(c)){toast('ยังไม่ถึงช่วงทำแบบนี้ ทำได้ตั้งแต่วันสุดท้ายของการอบรม');return}
   const d={type:L.form,center:L.center,courseId:L.course||'',courseName:c?c.name:'',at:Date.now(),...readForm(f)};
   const btn=f.querySelector('[type=submit]');btn.disabled=true;$('#lmsg').textContent='กำลังส่ง…';
   try{const id=await S.add('subs',d);
@@ -733,6 +734,10 @@ function pwView(){
       st.pwView=false;toast(S.mode==='fb'?'เปลี่ยนรหัสผ่านแล้ว ครั้งต่อไปให้เข้าระบบด้วยรหัสผ่านใหม่':'โหมดตัวอย่าง: บันทึกสถานะแล้ว (ไม่ได้เปลี่ยนรหัสจริง)');renderStaff()}
     catch(err){const c=(err&&err.code)||'';msg.textContent=c.includes('invalid-credential')||c.includes('wrong-password')?'รหัสผ่านปัจจุบันไม่ถูกต้อง':c.includes('weak-password')?'รหัสผ่านใหม่ง่ายเกินไป ลองใช้อย่างน้อย 6 ตัวอักษร':c.includes('too-many-requests')?'ลองผิดหลายครั้ง รอสักครู่แล้วลองใหม่':'เปลี่ยนรหัสผ่านไม่สำเร็จ ลองออกจากระบบแล้วเข้าใหม่ก่อน'}};
 }
+const todayISO=()=>{const d=new Date();return new Date(d-d.getTimezoneOffset()*6e4).toISOString().slice(0,10)};
+const evalFrom=c=>c.endDate||c.startDate||'';
+// พต.12 / พต.20 open from the last day of training (or right away when the teacher opens them early); never after the course is closed
+const evalOpen=c=>!c.closed&&(c.evalMode==='open'||(!!evalFrom(c)&&todayISO()>=evalFrom(c)));
 const inboxLabel=()=>`แบบที่ผู้เรียนส่งมา (${['pt1','pt2','pt12','pt20'].reduce((n,t)=>n+visSubs(t).length,0)})`;
 /* realtime: new forms and course changes appear without refreshing */
 function startWatch(){
@@ -791,12 +796,12 @@ function tabCourses(){
   T.innerHTML=`<div class="kpis" style="margin-bottom:16px"><div class="kpi"><span>หลักสูตร</span><b>${cs.length}</b></div><div class="kpi"><span>ผู้สมัคร (พต.2)</span><b>${nApps}</b></div><div class="kpi"><span>ผู้ผ่านการฝึกอบรม</span><b>${nPass}</b></div><div class="kpi"><span>งบประมาณรวม (บาท)</span><b>${baht(bud)}</b></div></div>
   <div class="row" style="margin-bottom:12px"><h2 style="flex:1">หลักสูตรที่เปิดสอน</h2><button class="btn gold" id="c-add" type="button">+ เพิ่มหลักสูตร</button></div>
   ${cs.length?`<div class="tblwrap"><table class="t"><thead><tr><th>หลักสูตร</th><th>ศูนย์</th><th>วันที่</th><th class="n">ผู้สมัคร</th><th class="n">งบประมาณ</th><th>สถานะ</th><th></th></tr></thead><tbody>
-  ${cs.map(c=>{const [k,l]=statusOf(c);return `<tr><td><b>${esc(c.name)}</b><br><span class="muted">${esc(c.hours||'-')} ชม. · ${esc(c.trainerName||'ยังไม่ระบุวิทยากร')}</span></td><td>${esc(c.center)}</td><td>${thStamp(c.startDate?Date.parse(c.startDate):0)||'-'}${c.endDate?' – '+thStamp(Date.parse(c.endDate)):''}</td><td class="n">${appsOf(c).length}</td><td class="n">${baht(budgetTotal(c))}</td><td><span class="pill ${k}">${l}</span>${c.closed?'<br><span class="pill closed" style="margin-top:4px">ปิดหลักสูตรแล้ว</span>':''}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ghost sm" data-edit="${c.id}" type="button">แก้ไข/งบประมาณ</button><button class="btn ${c.closed?'ghost':'danger'} sm" data-close="${c.id}" type="button">${c.closed?'เปิดหลักสูตรอีกครั้ง':'ปิดหลักสูตร'}</button></div></td></tr>`}).join('')}</tbody></table></div>`:`<div class="empty">ยังไม่มีหลักสูตร กด “เพิ่มหลักสูตร” เพื่อเปิดหลักสูตรแรกให้ผู้เรียนเลือกสมัคร</div>`}`;
+  ${cs.map(c=>{const [k,l]=statusOf(c);return `<tr><td><b>${esc(c.name)}</b><br><span class="muted">${esc(c.hours||'-')} ชม. · ${esc(c.trainerName||'ยังไม่ระบุวิทยากร')}</span></td><td>${esc(c.center)}</td><td>${thStamp(c.startDate?Date.parse(c.startDate):0)||'-'}${c.endDate?' – '+thStamp(Date.parse(c.endDate)):''}</td><td class="n">${appsOf(c).length}</td><td class="n">${baht(budgetTotal(c))}</td><td><span class="pill ${k}">${l}</span>${c.closed?'<br><span class="pill closed" style="margin-top:4px">ปิดหลักสูตรแล้ว</span>':evalOpen(c)?'<br><span class="pill open" style="margin-top:4px">เปิดประเมิน พต.12/20</span>':`<br><span class="pill closed" style="margin-top:4px" title="ผู้เรียนยังทำแบบ พต.12 / พต.20 ไม่ได้">ประเมินได้ ${esc(thStamp(Date.parse(evalFrom(c)+'T00:00:00'))||'-')}</span>`}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ghost sm" data-edit="${c.id}" type="button">แก้ไข/งบประมาณ</button><button class="btn ${c.closed?'ghost':'danger'} sm" data-close="${c.id}" type="button">${c.closed?'เปิดหลักสูตรอีกครั้ง':'ปิดหลักสูตร'}</button></div></td></tr>`}).join('')}</tbody></table></div>`:`<div class="empty">ยังไม่มีหลักสูตร กด “เพิ่มหลักสูตร” เพื่อเปิดหลักสูตรแรกให้ผู้เรียนเลือกสมัคร</div>`}`;
   $('#c-add').onclick=()=>{st.editCourse={center:isAll()?(st.centerF||st.centers[0]||''):st.me.center,open:true,amphoe:st.org.district,province:st.org.province,format:'แบบรวมกลุ่ม',budget:{},surveyMethods:['สำรวจความต้องการ']};renderStaff()};
   $$('[data-edit]').forEach(b=>b.onclick=()=>{st.editCourse=JSON.parse(JSON.stringify(st.courses.find(c=>c.id===b.dataset.edit)));renderStaff()});
   $$('[data-close]').forEach(b=>b.onclick=async()=>{const c=st.courses.find(x=>x.id===b.dataset.close);if(!c)return;const cl=!c.closed;
     if(cl&&!confirmTwice(b,'กดอีกครั้งเพื่อปิด'))return;
-    const o=cl?{closed:true,open:false}:{closed:false};try{await S.update('courses/'+c.id,o);Object.assign(c,o);toast(cl?'ปิดหลักสูตรแล้ว ผู้เรียนส่ง พต.12 / พต.20 ไม่ได้':'เปิดหลักสูตรอีกครั้งแล้ว');renderStaff()}catch(e){toast('บันทึกไม่สำเร็จ')}});
+    const o=cl?{closed:true,open:false}:{closed:false};try{await S.update('courses/'+c.id,o);Object.assign(c,o);toast(cl?'ปิดหลักสูตรแล้ว ผู้เรียนส่งแบบใด ๆ ไม่ได้':'เปิดหลักสูตรอีกครั้งแล้ว');renderStaff()}catch(e){toast('บันทึกไม่สำเร็จ')}});
 }
 function confirmTwice(b,msg){if(b.dataset.armed)return true;b.dataset.armed='1';const t=b.textContent;b.textContent=msg;setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t}},3000);return false}
 function courseEditor(){
@@ -809,7 +814,8 @@ function courseEditor(){
    <label class="f">ปีงบประมาณ<select name="fy">${st.years.list.map(y=>opt(y,String(c.fy||st.fy),'พ.ศ. '+y)).join('')}</select></label>
    ${inp('timeStart','เวลาเริ่มเรียน (น.)',`value="${esc(c.timeStart||'09.00')}" placeholder="09.00"`)}${inp('timeEnd','เวลาเลิกเรียน (น.)',`value="${esc(c.timeEnd||'16.00')}" placeholder="16.00"`)}
    <label class="f openf">การรับสมัคร<select name="open" class="sel-open">${opt('1',c.open?'1':'0','เปิดรับสมัคร (แสดงในหน้าผู้เรียน)')}${opt('0',c.open?'1':'0','ปิดรับสมัคร')}</select></label>
-   <label class="f">สถานะหลักสูตร<select name="closed">${opt('0',c.closed?'1':'0','เปิดใช้งาน (ผู้เรียนส่ง พต.12 / พต.20 ได้)')}${opt('1',c.closed?'1':'0','ปิดหลักสูตร (ผู้เรียนส่งแบบใด ๆ ไม่ได้)')}</select></label></div></div>
+   <label class="f">สถานะหลักสูตร<select name="closed">${opt('0',c.closed?'1':'0','เปิดใช้งาน')}${opt('1',c.closed?'1':'0','ปิดหลักสูตร (ผู้เรียนส่งแบบใด ๆ ไม่ได้)')}</select></label>
+   <label class="f">การทำแบบ พต.12 / พต.20 ของผู้เรียน<select name="evalMode">${opt('auto',c.evalMode||'auto','อัตโนมัติ: เปิดตั้งแต่วันสุดท้ายของการอบรม')}${opt('open',c.evalMode||'auto','เปิดให้ทำทันที')}</select></label></div></div>
   <div class="sec"><legend>สถานที่จัด</legend><div class="grid">${inp('place','สถานที่จัด ณ',`value="${esc(c.place||'')}"`)}${inp('village','หมู่บ้าน/ชุมชน',`value="${esc(c.village||'')}"`)}${inp('moo','หมู่ที่',`value="${esc(c.moo||'')}"`)}${inp('tambon','ตำบล',`value="${esc(c.tambon||'')}"`)}${inp('amphoe','อำเภอ',`value="${esc(c.amphoe||'')}"`)}${inp('province','จังหวัด',`value="${esc(c.province||'')}"`)}</div></div>
   <div class="sec"><legend>วิทยากร</legend><div class="grid">${inp('trainerName','ชื่อวิทยากร',`value="${esc(c.trainerName||'')}"`)}${inp('trainerEdu','วุฒิการศึกษา',`value="${esc(c.trainerEdu||'')}"`)}${inp('trainerAge','อายุ',`type="number" value="${esc(c.trainerAge||'')}"`)}${inp('trainerJob','อาชีพ',`value="${esc(c.trainerJob||'')}"`)}</div></div>
   <div class="sec"><legend>งบประมาณ (บาท)</legend><div class="grid">${BUDGET.map(([k,l])=>inp('b_'+k,l,`type="number" min="0" step="0.01" value="${esc(b[k]||'')}"`)).join('')}${inp('budgetType','ประเภทงบ',`value="${esc(c.budgetType||'')}"`)}${inp('budgetCode','รหัสงบประมาณ',`value="${esc(c.budgetCode||'')}"`)}</div>
