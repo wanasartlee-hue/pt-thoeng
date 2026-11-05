@@ -338,7 +338,7 @@ const CB=(on,label)=>`<span style="white-space:nowrap"><span class="cb${on?' on'
 const cname=s=>String(s||'').replace(/\s*\(ครู[^)]*\)\s*$/,'').trim();
 const thFull=t=>t?new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'}):'';
 const teacherPosOf=c=>(st.cpos||{})[c]||('ครู '+cname(c));
-const defaultJob=s=>s.role==='teacher'?('ครู '+cname(s.center||'')):s.role==='supervisor'?'หัวหน้างานการเรียนรู้เพื่อคุณวุฒิตามระดับ':'';
+const defaultJob=s=>(s.role==='teacher'||(s.role==='admin'&&s.center))?('ครู '+cname(s.center||'')):s.role==='supervisor'?'หัวหน้างานการเรียนรู้เพื่อคุณวุฒิตามระดับ':'';
 const jobOf=s=>(s&&(s.jobTitle||defaultJob(s)))||'';
 const directorPos=()=>st.org.directorPos||('ผู้อำนวยการ'+st.org.name);
 const teacherOf=c=>(st.cteach||{})[c]||((String(c||'').match(/\((ครู[^)]*)\)/)||[])[1])||cname(c);
@@ -503,6 +503,7 @@ async function loadStaffData(){
   const [staff,subs]=await Promise.all([S.list('staff'),isAll()?S.list('subs'):S.list('subs',['center',st.me.center])]);
   st.staff=staff.sort((a,b)=>(a.order||99)-(b.order||99));
   st.subs=subs.map(it=>({...it,_key:it.id,_path:'subs/'+it.id})).sort((a,b)=>(a.at||0)-(b.at||0));
+  if(st.me&&st.me.role==='admin'){const {list}=centersFromStaff();if(list.some(c=>!st.centers.includes(c))){try{await syncCenters()}catch(e){console.warn('syncCenters',e)}}}
 }
 
 /* ================= routing ================= */
@@ -1111,7 +1112,12 @@ function tabUsers(){
   $('#u-xlsx').onchange=async e=>{const f=e.target.files[0];if(f){try{await importExcel(f)}catch(err){toast('นำเข้าไม่สำเร็จ')}}};
   $$('[data-u]').forEach(b=>b.onclick=()=>{st.editUser={...st.staff.find(s=>s.id===b.dataset.u)};renderStaff()});
 }
-async function syncCenters(){const list=[...new Set([...st.staff].sort((a,b)=>(a.order||999)-(b.order||999)).filter(s=>s.role==='teacher'&&s.center).map(s=>s.center.trim()))];const teachers={},positions={};st.staff.forEach(s=>{const k=(s.center||'').trim();if(s.role==='teacher'&&k&&!teachers[k]){teachers[k]=`${s.title||''}${s.first||''} ${s.last||''}`.trim();positions[k]=jobOf(s)}});await S.set('meta/centers',{list,teachers,positions});st.centers=list;st.cteach=teachers;st.cpos=positions}
+function centersFromStaff(){const ord=[...st.staff].sort((a,b)=>(a.order||999)-(b.order||999)).filter(s=>(s.center||'').trim());
+  const list=[...new Set(ord.map(s=>s.center.trim()))],teachers={},positions={};
+  // the teacher of a center is the staff member with role "teacher" there; an admin or supervisor who also runs a center counts when no teacher is set
+  [...ord.filter(s=>s.role==='teacher'),...ord.filter(s=>s.role!=='teacher')].forEach(s=>{const k=s.center.trim();if(!teachers[k]){teachers[k]=`${s.title||''}${s.first||''} ${s.last||''}`.trim();positions[k]=jobOf(s)}});
+  return{list,teachers,positions}}
+async function syncCenters(){const {list,teachers,positions}=centersFromStaff();await S.set('meta/centers',{list,teachers,positions});st.centers=list;st.cteach=teachers;st.cpos=positions}
 function roleFromPos(p){p=String(p||'').trim();if(p==='แอดมิน')return['admin',''];if(['ผู้อำนวยการ','ครู','หัวหน้างาน'].includes(p))return['supervisor',''];return['teacher',p]}
 async function importExcel(file){
   if(!window.XLSX){toast('โหลดตัวอ่าน Excel ไม่สำเร็จ');return}
