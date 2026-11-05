@@ -340,7 +340,10 @@ const HRS=['3 - 9 ชั่วโมง','10 ชั่วโมงขึ้น�
 const SAT=[['ตอนที่ 1 ความพึงพอใจด้านเนื้อหา',['เนื้อหาตรงตามความต้องการ','เนื้อหาเพียงพอต่อความต้องการ','เนื้อหาปัจจุบันทันสมัย','เนื้อหามีประโยชน์ต่อการนำไปใช้ในการพัฒนาคุณภาพชีวิต']],
 ['ตอนที่ 2 ความพึงพอใจด้านกระบวนการจัดกิจกรรมการอบรม',['การเตรียมความพร้อมก่อนอบรม','การออกแบบกิจกรรมเหมาะสมกับวัตถุประสงค์','การจัดกิจกรรมเหมาะสมกับเวลา','การจัดกิจกรรมเหมาะสมกับกลุ่มเป้าหมาย','วิธีการวัดผล/ประเมินผลเหมาะสมกับวัตถุประสงค์']],
 ['ตอนที่ 3 ความพึงพอใจต่อวิทยากร',['วิทยากรสามารถถ่ายทอดความรู้ ประสบการณ์ได้อย่างเหมาะสม','วิทยากรมีการใช้สื่ออย่างเหมาะสม','วิทยากรเปิดโอกาสให้มีส่วนร่วมและซักถาม']],
-['ตอนที่ 4 ความพึงพอใจด้านการอำนวยความสะดวก',['สถานที่ วัสดุ อุปกรณ์และสิ่งอำนวยความสะดวก','การสื่อสาร การสร้างบรรยากาศเพื่อให้เกิดการเรียนรู้','การบริการ การช่วยเหลือและการแก้ปัญหา','อาหาร/อาหารว่างและเครื่องดื่ม']]];
+['ตอนที่ 4 ความพึงพอใจด้านการอำนวยความสะดวก',['สถานที่ วัสดุ อุปกรณ์และสิ่งอำนวยความสะดวก','การสื่อสาร การสร้างบรรยากาศเพื่อให้เกิดการเรียนรู้','การบริการ การช่วยเหลือและการแก้ปัญหา','อาหาร/อาหารว่างและเครื่องดื่ม']],
+['ตอนที่ 5 ความพึงพอใจต่อสื่อการเรียนรู้/นวัตกรรมการเรียนรู้',['สื่อการเรียนรู้มีความสอดคล้องกับหลักสูตร','สื่อมีความน่าสนใจและกระตุ้นการเรียนรู้','สื่อช่วยให้เข้าใจเนื้อหาได้ดีขึ้น']],
+['ตอนที่ 6 ความพึงพอใจต่อระบบแนะแนวการเรียนการประกอบอาชีพที่สร้างโอกาสในการเรียนรู้',['การสร้างโอกาสการเรียนรู้ให้รู้จักและเข้าใจตนเอง','การได้รับคำแนะนำ แนะแนว ช่วยเหลือระหว่างร่วมโครงการอย่างเหมาะสม','การได้รับคำแนะนำ แนะแนว นำไปสู่การช่วยเหลือ การป้องกันและแก้ไขปัญหา ให้บรรลุตามเป้าหมาย']]];
+const SAT_N=SAT.reduce((n,[,items])=>n+items.length,0);
 const LEVELS=[[5,'มากที่สุด'],[4,'มาก'],[3,'ปานกลาง'],[2,'น้อย'],[1,'น้อยที่สุด']];
 const USE=['สร้างอาชีพ','เพิ่มรายได้','ลดรายจ่าย','แก้ปัญหาในการดำรงชีวิต','มีทักษะ','สร้างมูลค่าเพิ่ม','ต่อยอดภูมิปัญญาท้องถิ่น','พัฒนาสู่วิสาหกิจชุมชน','ต้องการได้รับการพัฒนาความรู้','ใช้เวลาว่างให้เกิดประโยชน์'];
 const INCOME=['ต่ำกว่า 1,000 บาท','1,001 – 3,000 บาท','3,001 – 5,000 บาท','5,001 – 10,000 บาท','10,001 – 15,000 บาท','15,001 – 30,000 บาท','30,001 บาทขึ้นไป'];
@@ -434,7 +437,7 @@ function demoSeed(m){
         house:String(10+k*7),moo:c.moo,village:c.village,tambon:c.tambon,amphoe:'เทิง',province:'เชียงราย',zip:'57160',phone:'08'+String(10000000+k*1111).slice(0,8),reasons:['ต้องการมีรายได้','ต้องการมีอาชีพหรือพัฒนาอาชีพ'].slice(0,1+k%2),reasonOther:'',status:k%3?['ผู้ถือบัตรสวัสดิการของรัฐ']:['ผู้สูงอายุ'],statusOther:'',job,jobOther:'',target,targetOther:'',method:'แบบรวมกลุ่ม',methodPlace:'',news:k%2?'ครู สกร.':'ผู้ใหญ่บ้าน'};
       if(scores){const [kk,ss,qq]=scores[j],total=kk+ss+qq;evals[id]={k:String(kk),s:String(ss),q:String(qq),att:'100',total,pass:total>=60}}});
     if(scores)c.evals=evals});
-  const sat=(r,extra)=>{const o={};for(let i=1;i<=16;i++)o['r'+i]=String(r[i%r.length]);return{...o,...extra}};
+  const sat=(r,extra)=>{const o={};for(let i=1;i<=SAT_N;i++)o['r'+i]=String(r[i%r.length]);return{...o,...extra}};
   [['หญิง','56','ประถมศึกษา','เกษตรกร',[5,5,4,5],'อยากให้จัดต่อยอดเรื่องการขายออนไลน์'],['หญิง','61','ต่ำกว่าประถมศึกษา','รับจ้าง',[5,4,5]],['ชาย','41','มัธยมศึกษาตอนต้น','ค้าขาย',[4,4,5,4]],['หญิง','28','มัธยมศึกษาตอนปลาย','รับจ้าง',[5,5,5,4],'วิทยากรสอนเข้าใจง่าย']].forEach(([sex,age,edu,job,r,comment],i)=>
     m['subs/demo-s'+i]={type:'pt12',center:C1,courseId:'demo-c1',courseName:'การทำขนมไทย',at:T+11*day+i*600000,...sat(r,{sex,age,edu,job,comment:comment||''})});
   [[0,['สร้างอาชีพ','เพิ่มรายได้','มีทักษะ'],'1,001 – 3,000 บาท'],[2,['เพิ่มรายได้','ต่อยอดภูมิปัญญาท้องถิ่น'],'3,001 – 5,000 บาท'],[4,['ลดรายจ่าย','ใช้เวลาว่างให้เกิดประโยชน์'],'ต่ำกว่า 1,000 บาท']].forEach(([pi,use,income],i)=>{const [title,first,last]=people[pi];
@@ -531,7 +534,7 @@ function fPT20(){return `
 
 const FORMS={pt1:{no:'พต. 1',t:'แบบสำรวจความต้องการ',full:'แบบสำรวจความต้องการการจัดการเรียนรู้เพื่อการพัฒนาตนเอง',sub:'สำหรับประชาชน',build:fPT1,needCourse:false,foot:'หน่วยจัดการเรียนรู้สามารถปรับแบบสำรวจฯ ได้ตามความเหมาะสม'},
  pt2:{no:'พต. 2',t:'ใบสมัครเรียน',full:'ใบสมัครผู้เรียนหลักสูตรการจัดการเรียนรู้เพื่อการพัฒนาตนเอง',sub:'กรมส่งเสริมการเรียนรู้ กระทรวงศึกษาธิการ',build:fPT2,needCourse:true,foot:'ในกรณีต่างด้าว ต้องมีใบอนุญาตการทำงาน (Work Permit) / หนังสือเดินทาง (passport) หรือเอกสารอื่นที่ทางราชการออกให้ จึงจะสามารถสมัครเรียนได้'},
- pt12:{no:'พต. 12',t:'แบบประเมินความพึงพอใจ',full:'แบบประเมินความพึงพอใจ',sub:'',build:fPT12,needCourse:true,foot:'คำชี้แจง แบบประเมินความพึงพอใจ มี 4 ตอน โปรดเลือกระดับความพึงพอใจตามความคิดเห็นของท่าน'},
+ pt12:{no:'พต. 12',t:'แบบประเมินความพึงพอใจ',full:'แบบประเมินความพึงพอใจ',sub:'',build:fPT12,needCourse:true,foot:'คำชี้แจง แบบประเมินความพึงพอใจ มี 6 ตอน 22 ข้อ โปรดเลือกระดับความพึงพอใจตามความคิดเห็นของท่าน'},
  pt20:{no:'พต. 20',t:'แบบติดตามผู้ผ่านการฝึกอบรม',full:'แบบติดตามผู้ผ่านการฝึกอบรม',sub:'',build:fPT20,needCourse:true,foot:'แบบติดตามผลผู้ผ่านการฝึกอบรม มีวัตถุประสงค์เพื่อรวบรวมข้อมูลผู้ผ่านการฝึกอบรม ในการนำความรู้ไปใช้ประโยชน์ หลังจากจบหลักสูตรแล้ว'}};
 
 /* ================= LEARNER PAGE ================= */
@@ -961,7 +964,7 @@ function tabForms(){
   B.innerHTML=coursePicker();bindPicker();const c=curCourse();if(!c){B.innerHTML+='<div class="empty">ยังไม่มีหลักสูตร</div>';return}
   if(k==='pt12'){const L=st.subs.filter(s=>s.type==='pt12'&&s.courseId===c.id);let i=0;
     B.innerHTML+=L.length?`<div class="row" style="margin-bottom:10px"><h2 style="flex:1">ผลประเมินความพึงพอใจ (${L.length} คน) เฉลี่ย ${satMean(L).toFixed(2)} ระดับ${satLevel(satMean(L))}</h2><button class="btn gold" id="p12-pdf" type="button">PDF สรุป พต.12</button></div>
-     <div class="tblwrap"><table class="t"><thead><tr><th>รายการ</th><th class="n">ค่าเฉลี่ย</th><th>ระดับ</th></tr></thead><tbody>${SAT.map(([h,items])=>`<tr><td colspan="3"><b>${h}</b></td></tr>`+items.map(t=>{i++;const m=itemMean(L,i);return `<tr><td>${i}. ${esc(t)}</td><td class="n">${m.toFixed(2)}</td><td>${satLevel(m)}</td></tr>`}).join('')).join('')}</tbody></table></div>
+     <div class="tblwrap"><table class="t"><thead><tr><th>รายการ</th><th class="n">ค่าเฉลี่ย</th><th>ระดับ</th></tr></thead><tbody>${SAT.map(([h,items])=>`<tr><td colspan="3"><b>${h}</b></td></tr>`+items.map(t=>{i++;const m=itemMean(L,i);return `<tr><td>${i}. ${esc(t)}</td><td class="n">${m?m.toFixed(2):'-'}</td><td>${satLevel(m)}</td></tr>`}).join('')).join('')}</tbody></table></div>
      ${L.some(s=>s.comment)?`<div class="sheet" style="margin-top:12px"><h3>ข้อเสนอแนะ</h3><ul>${L.filter(s=>s.comment).map(s=>`<li>${esc(s.comment)}</li>`).join('')}</ul></div>`:''}`:'<div class="empty">ยังไม่มีผู้ตอบแบบประเมินความพึงพอใจของหลักสูตรนี้</div>';
     bindPicker();if($('#p12-pdf'))$('#p12-pdf').onclick=()=>openDoc('pt12s',c);return}
   const L=st.subs.filter(s=>s.type==='pt20'&&s.courseId===c.id);
@@ -970,7 +973,7 @@ function tabForms(){
   bindPicker();if($('#p20-pdf'))$('#p20-pdf').onclick=()=>openDoc('pt20',c);
 }
 const itemMean=(L,i)=>{const v=L.map(s=>num(s['r'+i])).filter(Boolean);return v.length?v.reduce((a,b)=>a+b,0)/v.length:0};
-const satMean=L=>{const v=[];L.forEach(s=>{for(let i=1;i<=16;i++){const x=num(s['r'+i]);if(x)v.push(x)}});return v.length?v.reduce((a,b)=>a+b,0)/v.length:0};
+const satMean=L=>{const v=[];L.forEach(s=>{for(let i=1;i<=SAT_N;i++){const x=num(s['r'+i]);if(x)v.push(x)}});return v.length?v.reduce((a,b)=>a+b,0)/v.length:0};
 const satLevel=m=>!m?'-':m>=4.51?'มากที่สุด':m>=3.51?'มาก':m>=2.51?'ปานกลาง':m>=1.51?'น้อย':'น้อยที่สุด';
 
 /* ----- users (admin) ----- */
@@ -1137,7 +1140,7 @@ const DOCS={
   <div class="s9w">${sig9('วิทยากร',c.trainerName,'','')}${sig9('ผู้รับผิดชอบ',teacherOf(c.center),teacherPosOf(c.center),'')}</div><div class="s9w one mid">${sig9('ผู้อนุมัติ',st.org.director,directorPos(),'')}</div>`},
  pt12s:c=>{const L=st.subs.filter(s=>s.type==='pt12'&&s.courseId===c.id);let i=0;const m=satMean(L);return `<div class="hd"><b>แบบ พต. 12</b></div><h2>สรุปผลแบบประเมินความพึงพอใจ</h2>${courseHead(c)}<p>ตำบล ${D(c.tambon,120)} อำเภอ${esc(c.amphoe||st.org.district)} จังหวัด${esc(c.province||st.org.province)} · ผู้ตอบแบบประเมิน ${L.length} คน (ชาย ${L.filter(s=>s.sex==='ชาย').length} หญิง ${L.filter(s=>s.sex==='หญิง').length})</p>
   <table><tr><th>ข้อ</th><th>รายการประเมินความพึงพอใจ</th>${LEVELS.map(([,l])=>`<th>${l}</th>`).join('')}<th>ค่าเฉลี่ย</th><th>ระดับ</th></tr>
-  ${SAT.map(([h,items])=>`<tr><td colspan="9"><b>${h}</b></td></tr>`+items.map(t=>{i++;const k=i;const mm=itemMean(L,k);return `<tr class="avoid"><td class="c">${k}</td><td>${esc(t)}</td>${LEVELS.map(([v])=>`<td class="c">${L.filter(s=>num(s['r'+k])===v).length||''}</td>`).join('')}<td class="c">${mm.toFixed(2)}</td><td class="c">${satLevel(mm)}</td></tr>`}).join('')).join('')}
+  ${SAT.map(([h,items])=>`<tr><td colspan="9"><b>${h}</b></td></tr>`+items.map(t=>{i++;const k=i;const mm=itemMean(L,k);return `<tr class="avoid"><td class="c">${k}</td><td>${esc(t)}</td>${LEVELS.map(([v])=>`<td class="c">${L.filter(s=>num(s['r'+k])===v).length||''}</td>`).join('')}<td class="c">${mm?mm.toFixed(2):'-'}</td><td class="c">${satLevel(mm)}</td></tr>`}).join('')).join('')}
   <tr><td colspan="7" class="c"><b>รวมเฉลี่ย</b></td><td class="c"><b>${m.toFixed(2)}</b></td><td class="c"><b>${satLevel(m)}</b></td></tr></table>
   <h4>ความคิดเห็นและข้อเสนอแนะอื่น ๆ</h4>${L.filter(s=>s.comment).map(s=>`<p>- ${esc(s.comment)}</p>`).join('')||'<p>-</p>'}`},
  pt12:d=>{const c=st.courses.find(x=>x.id===d.courseId)||{name:d.courseName};let i=0;return `<div class="hd"><b>แบบ พต. 12</b></div><h2>แบบประเมินความพึงพอใจ</h2>${courseHead(c)}
