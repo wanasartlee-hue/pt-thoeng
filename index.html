@@ -91,6 +91,7 @@ legend{font-family:var(--f-display);color:var(--plum);font-size:15.5px;padding:0
 .tabs{position:relative;display:flex;gap:2px;overflow-x:auto;scroll-behavior:auto;border-bottom:2px solid var(--line);margin-bottom:16px}
 .tabs button{font:inherit;border:0;background:none;padding:10px 14px;cursor:pointer;color:var(--muted);font-weight:500;white-space:nowrap;border-bottom:3px solid transparent;margin-bottom:-2px}
 .tabs button.on{color:var(--plum);border-bottom-color:var(--gold)}
+.tabs .badge{display:inline-block;min-width:20px;padding:1px 6px;margin-left:6px;border-radius:999px;background:#dc2626;color:#fff;font-size:12px;font-weight:700;line-height:18px;text-align:center;vertical-align:1px}
 label.f.openf{color:#c99400;font-weight:700;font-size:15px}
 select.sel-open{background:var(--violet);color:#fff;border:2px solid var(--plum);font-weight:600;box-shadow:0 0 0 3px var(--lilac)}
 select.sel-open:focus{outline:2px solid var(--gold);outline-offset:1px}
@@ -424,6 +425,7 @@ const S={mode:'loading',F:null,fs:null,auth:null,user:null,mem:{},fbError:false,
   // accounts (Firebase Authentication, email + password where the password is the phone number)
   async signIn(email,pw){return this.F.signInWithEmailAndPassword(this.auth,email,pw)},
   async signOut(){if(this.mode==='fb')await this.F.signOut(this.auth)},
+  async changePw(cur,nw){const F=this.F,u=this.auth.currentUser;if(!u)throw{code:'no-user'};await F.reauthenticateWithCredential(u,F.EmailAuthProvider.credential(u.email,cur));await F.updatePassword(u,nw)},
   async createOwn(email,pw){const c=await this.F.createUserWithEmailAndPassword(this.auth,email,pw);return c.user.uid},
   async createOther(email,pw){ // a second app instance, so the admin stays signed in
     const F=this.F,app2=F.initializeApp(FIREBASE_CONFIG,'creator-'+newId());
@@ -596,7 +598,7 @@ function renderCertSearch(){
 function renderLearner(){
   if(st.lc.form==='cert')return renderCertSearch();
   const L=st.lc,F=FORMS[L.form];
-  const courses=st.courses.filter(c=>c.center===L.center&&(L.form!=='pt2'||c.open));
+  const courses=st.courses.filter(c=>c.center===L.center&&!c.closed&&(L.form!=='pt2'||c.open));
   if(L.course&&!courses.find(c=>c.id===L.course))L.course='';
   const c=st.courses.find(x=>x.id===L.course);
   $('#app').innerHTML=`${demoBanner()}
@@ -607,7 +609,7 @@ function renderLearner(){
     <p class="note">${F.foot}</p>
     <div class="grid g2">
       <label class="f">ศูนย์การเรียนรู้ (ตำบล)<select id="l-center" required>${opt('','','— เลือกศูนย์การเรียนรู้ —')}${st.centers.map(v=>opt(v,L.center)).join('')}</select></label>
-      ${F.needCourse?`<label class="f">หลักสูตรที่เปิดสอน<select id="l-course" required ${L.center?'':'disabled'}>${opt('','',L.center?(courses.length?'— เลือกหลักสูตร —':'ครูยังไม่ได้เปิดหลักสูตรในศูนย์นี้'):'เลือกศูนย์ก่อน')}${courses.map(x=>opt(x.id,L.course,`${x.name} (${x.hours||'-'} ชม.)`)).join('')}</select></label>`:''}
+      ${F.needCourse?`<label class="f">หลักสูตรที่เปิดสอน<select id="l-course" required ${L.center?'':'disabled'}>${opt('','',L.center?(courses.length?'— เลือกหลักสูตร —':(L.form==='pt2'?'ครูยังไม่ได้เปิดหลักสูตรในศูนย์นี้':'ไม่มีหลักสูตรที่เปิดให้ส่งแบบนี้ (หลักสูตรปิดแล้ว)')):'เลือกศูนย์ก่อน')}${courses.map(x=>opt(x.id,L.course,`${x.name} (${x.hours||'-'} ชม.)`)).join('')}</select></label>`:''}
     </div>
     ${c?`<div class="coursecard"><b>${esc(c.name)}</b><span>${thDate(c.startDate)}${c.endDate?' – '+thDate(c.endDate):''} · ${esc(c.hours||'-')} ชั่วโมง</span><span>สถานที่: ${esc(c.place||'-')} ${c.moo?'หมู่ '+esc(c.moo):''} ต.${esc(c.tambon||'-')} · วิทยากร: ${esc(c.trainerName||'-')}</span></div>`:''}
     <div class="stack" id="lbody">${(!L.center||(F.needCourse&&!L.course))?`<div class="empty">${!L.center?'เลือกศูนย์การเรียนรู้ด้านบนเพื่อเริ่มกรอกแบบ '+F.no:'เลือกหลักสูตรเพื่อเริ่มกรอกแบบ '+F.no}</div>`:F.build()}</div>
@@ -623,6 +625,7 @@ async function submitLearner(e){
   if(!f.checkValidity()){f.reportValidity();return}
   if(L.form==='pt2'&&!/^[0-9A-Za-z-]{6,20}$/.test(f.elements.idcard.value.replace(/\s/g,''))){toast('เลขบัตรประชาชนไม่ถูกต้อง');return}
   const c=st.courses.find(x=>x.id===L.course);
+  if(c&&c.closed){toast('หลักสูตรนี้ปิดแล้ว ไม่สามารถส่งแบบได้');return}
   const d={type:L.form,center:L.center,courseId:L.course||'',courseName:c?c.name:'',at:Date.now(),...readForm(f)};
   const btn=f.querySelector('[type=submit]');btn.disabled=true;$('#lmsg').textContent='กำลังส่ง…';
   try{const id=await S.add('subs',d);
@@ -640,16 +643,16 @@ async function renderStaff(){
   if(!st.me)return renderLogin();
   if(!st.staffLoaded){$('#app').innerHTML='<div class="empty">กำลังโหลดข้อมูลบุคลากรและผู้เรียน…</div>';try{await loadStaffData();st.staffLoaded=true}catch(e){$('#app').innerHTML='<div class="empty">โหลดข้อมูลไม่สำเร็จ</div>';return}}
   startWatch();
-  const me=st.me,tabs=[['inbox',inboxLabel()],['courses','หลักสูตร & งบประมาณ'],['pt8','พต.8 รายชื่อผู้สมัคร'],['pt9','พต.9 ลงเวลา'],['pt10','พต.10 ประเมินผล'],['pt11','พต.11 นิเทศ'],['pt13','พต.13 รายงาน & อนุมัติ'],['pt14','พต.14 ใบรับรอง'],['forms','พต.1 / 12 / 20'],['prompt','Prompt สร้างอินโฟกราฟิก']];
+  const me=st.me,tabs=[['inbox',inboxLabel()],['courses','หลักสูตร & งบประมาณ'],['pt8','พต.8 รายชื่อผู้สมัคร'],['pt9','พต.9 ลงเวลา'],['pt10','พต.10 ประเมินผล'],['pt11','พต.11 นิเทศ'],['pt13','พต.13 รายงาน & อนุมัติ'+(isAll()&&pendingApprove()?`<span class="badge" title="รายงานที่ครูยืนยันแล้ว รออนุมัติ">${pendingApprove()}</span>`:'')],['pt14','พต.14 ใบรับรอง'],['forms','พต.1 / 12 / 20'],['prompt','Prompt สร้างอินโฟกราฟิก']];
   const prevTabScroll=$('.tabs')?$('.tabs').scrollLeft:(st.tabScroll||0);
   if(isAll())tabs.push(['overview','ภาพรวมปีงบประมาณ']);
   if(me.role==='admin')tabs.push(['users','ผู้ใช้งาน'],['settings','ตั้งค่า']);
   $('#app').innerHTML=`${demoBanner()}
   <div class="who"><b>${esc(me.title||'')}${esc(me.first)} ${esc(me.last||'')}</b><span class="pill role">${ROLES[me.role]}</span><span class="muted">${isAll()?'เห็นข้อมูลทุกศูนย์':esc(me.center)}</span><span style="flex:1"></span>
    ${S.mode==='fb'?'<span class="live" title="ข้อมูลอัปเดตอัตโนมัติเมื่อมีผู้ส่งแบบใหม่">อัปเดตอัตโนมัติ</span>':''}
-   <label class="f" style="min-width:170px"><select id="s-fy" aria-label="ปีงบประมาณ">${st.years.list.map(y=>opt(y,st.fy,'ปีงบประมาณ '+y)).join('')}</select></label>
-   ${isAll()?`<label class="f" style="min-width:220px"><select id="s-centerf" aria-label="กรองศูนย์">${opt('',st.centerF,'ทุกศูนย์การเรียนรู้')}${st.centers.map(v=>opt(v,st.centerF)).join('')}</select></label>`:''}
-   <button class="btn ghost sm" id="s-refresh" type="button">รีเฟรชข้อมูล</button><button class="btn ghost sm" id="s-out" type="button">ออกจากระบบ</button></div>
+   <label class="f" style="min-width:150px"><select id="s-fy" aria-label="ปีงบประมาณ">${st.years.list.map(y=>opt(y,st.fy,'ปีงบประมาณ '+y)).join('')}</select></label>
+   ${isAll()?`<label class="f" style="min-width:190px"><select id="s-centerf" aria-label="กรองศูนย์">${opt('',st.centerF,'ทุกศูนย์การเรียนรู้')}${st.centers.map(v=>opt(v,st.centerF)).join('')}</select></label>`:''}
+   ${canChangePw()?'<button class="btn ghost sm" id="s-pw" type="button" title="เปลี่ยนรหัสผ่าน">เปลี่ยนรหัส</button>':''}<button class="btn ghost sm" id="s-refresh" type="button">รีเฟรชข้อมูล</button><button class="btn ghost sm" id="s-out" type="button">ออกจากระบบ</button></div>
   <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button type="button" data-tab="${k}" class="${st.tab===k?'on':''}">${l}</button>`).join('')}</div>
   <div id="tabbody"></div>`;
   { // keep the tab bar where it was, and bring the active tab into view
@@ -657,24 +660,27 @@ async function renderStaff(){
     if(on){const l=on.offsetLeft,r=l+on.offsetWidth;if(l<tb.scrollLeft)tb.scrollLeft=Math.max(0,l-12);else if(r>tb.scrollLeft+tb.clientWidth)tb.scrollLeft=r-tb.clientWidth+12}
     st.tabScroll=tb.scrollLeft;tb.addEventListener('scroll',()=>{st.tabScroll=tb.scrollLeft},{passive:true});
   }
-  $$('.tabs button').forEach(b=>b.onclick=async()=>{st.tab=b.dataset.tab;st.editCourse=null;st.editUser=null;if(st.tab==='inbox'){try{await loadStaffData()}catch(e){}}renderStaff()});
+  $$('.tabs button').forEach(b=>b.onclick=async()=>{st.pwView=false;st.tab=b.dataset.tab;st.editCourse=null;st.editUser=null;if(st.tab==='inbox'){try{await loadStaffData()}catch(e){}}renderStaff()});
   $('#s-out').onclick=async()=>{stopWatch();await S.signOut();st.me=null;st.staffLoaded=false;try{sessionStorage.removeItem('pt-me')}catch(e){}renderStaff()};
   $('#s-refresh').onclick=async()=>{await loadPublic();await loadStaffData();toast('อัปเดตข้อมูลล่าสุดแล้ว');renderStaff()};
   if($('#s-centerf'))$('#s-centerf').onchange=e=>{st.centerF=e.target.value;renderStaff()};
   $('#s-fy').onchange=e=>{st.fy=e.target.value;st.courseId='';st.inCourse='';renderStaff()};
+  if($('#s-pw'))$('#s-pw').onclick=()=>{st.pwView=true;renderStaff()};
   if(!tabs.find(t=>t[0]===st.tab))st.tab='inbox';
+  if(st.pwView&&canChangePw())return pwView();
+  st.pwView=false;
   ({prompt:tabPrompt,inbox:tabInbox,overview:tabOverview,pt9:tabPT9,courses:tabCourses,pt8:tabPT8,pt10:tabPT10,pt11:tabPT11,pt13:tabPT13,pt14:tabPT14,forms:tabForms,users:tabUsers,settings:tabSettings})[st.tab]();
 }
 async function renderLogin(){
   if(S.mode==='fb'&&!st.setupChecked){$('#app').innerHTML='<div class="empty">กำลังตรวจสอบระบบ…</div>';try{st.setupDone=!!(await S.get('meta/setup'))}catch(e){st.setupDone=true}st.setupChecked=true}
   if(S.mode==='fb'&&!st.setupDone)return renderSetup();
   $('#app').innerHTML=`${demoBanner()}<form class="sheet stack login" id="loginf"><h2>เข้าสู่ระบบสำหรับครูและผู้ดูแล</h2><p class="muted">ชื่อผู้ใช้คือชื่อจริง (ไม่ต้องใส่คำนำหน้าและนามสกุล) รหัสผ่านคือเบอร์โทรศัพท์</p>
-  ${inp('u','ชื่อผู้ใช้','required autocomplete="username" placeholder="เช่น ศุภชัย"')}<label class="f">รหัสผ่าน (เบอร์โทร)<span class="pw"><input name="p" id="pw" required type="password" inputmode="numeric" autocomplete="current-password"><button type="button" id="pw-eye" aria-label="แสดงรหัสผ่าน" title="แสดงรหัสผ่าน">${EYE}</button></span></label>
+  ${inp('u','ชื่อผู้ใช้','required autocomplete="username" placeholder="เช่น ศุภชัย"')}<label class="f">รหัสผ่าน (เบอร์โทร หรือรหัสผ่านที่ตั้งใหม่)<span class="pw"><input name="p" id="pw" required type="password" autocomplete="current-password"><button type="button" id="pw-eye" aria-label="แสดงรหัสผ่าน" title="แสดงรหัสผ่าน">${EYE}</button></span></label>
   <div class="row"><button class="btn" type="submit">เข้าสู่ระบบ</button>${S.mode==='fb'?`<a class="btn ghost" href="${esc(location.pathname)}?demo=1#staff">ดูโหมดตัวอย่าง</a>`:''}</div><p class="muted" id="loginmsg"></p>
   ${S.mode==='local'?`<div class="approve" style="gap:8px"><b>เข้าใช้โหมดตัวอย่างในบทบาท</b><div class="row">${[['demo-admin','แอดมิน'],['demo-sup','หัวหน้างาน'],['demo-t1','ครู ศกร.ตัวอย่างหนึ่ง'],['demo-t2','ครู ศศช.ตัวอย่างสอง']].map(([id,l])=>`<button class="btn ${id==='demo-admin'?'gold':'ghost'}" type="button" data-as="${id}">${l}</button>`).join('')}</div><p class="muted">หรือพิมพ์ชื่อผู้ใช้ เช่น สมใจ รหัสผ่าน 0000</p></div>`:''}</form>`;
   $$('[data-as]').forEach(b=>b.onclick=async()=>{const m=await S.get('staff/'+b.dataset.as);if(m)setMe(m)});
   $('#pw-eye').onclick=()=>{const i=$('#pw'),eb=$('#pw-eye'),show=i.type==='password';i.type=show?'text':'password';eb.innerHTML=show?EYE_OFF:EYE;eb.setAttribute('aria-label',show?'ซ่อนรหัสผ่าน':'แสดงรหัสผ่าน');eb.title=eb.getAttribute('aria-label');i.focus()};
-  $('#loginf').onsubmit=async e=>{e.preventDefault();const u=e.target.u.value.trim(),p=e.target.p.value.replace(/\D/g,''),msg=$('#loginmsg');msg.textContent='กำลังตรวจสอบ…';
+  $('#loginf').onsubmit=async e=>{e.preventDefault();const u=e.target.u.value.trim(),raw=e.target.p.value.trim(),p=/^[\d\s-]+$/.test(raw)?raw.replace(/\D/g,''):raw,msg=$('#loginmsg');msg.textContent='กำลังตรวจสอบ…';
     if(S.mode!=='fb'){const m=(await S.list('staff')).find(x=>(x.first||'').trim()===u);if(m&&p==='0000'){setMe(m);return}msg.textContent='โหมดตัวอย่าง: ใช้ชื่อ สมใจ / มานะ / ปิติ / หัวหน้า / แอดมิน และรหัสผ่าน 0000';return}
     try{const L=await S.get('logins/'+await loginKey(u));if(!L){msg.textContent='ไม่พบชื่อผู้ใช้นี้ ตรวจสอบการสะกดชื่อ หรือติดต่อแอดมิน';return}
       const cred=await S.signIn(L.email,p);const m=await S.get('staff/'+cred.user.uid);
@@ -697,6 +703,35 @@ function renderSetup(){
 }
 function setMe(m){st.me={id:m.id,title:m.title,first:m.first,last:m.last,role:m.role,center:m.center||''};try{sessionStorage.setItem('pt-me',JSON.stringify(st.me))}catch(e){}st.staffLoaded=false;renderStaff()}
 
+const meDoc=()=>st.staff.find(x=>x.id===st.me.id)||{};
+const canChangePw=()=>st.me.role==='admin'||!meDoc().pwChanged;
+const pendingApprove=()=>visCourses().filter(c=>{const a=c.approval||{};return a.teacher&&!a.supervisor}).length;
+function pwView(){
+  const T=$('#tabbody'),adm=st.me.role==='admin';
+  T.innerHTML=`<form class="sheet stack login" id="pwf" style="max-width:520px"><h2>เปลี่ยนรหัสผ่าน</h2>
+   <p class="muted">${adm?'แอดมินเปลี่ยนรหัสผ่านของตนเองได้ทุกเมื่อ':'<b style="color:#b91c1c">เปลี่ยนได้ 1 ครั้งเท่านั้น</b> หลังเปลี่ยนแล้วให้ใช้รหัสผ่านใหม่ในการเข้าระบบ หากลืมรหัสผ่าน ให้แจ้งแอดมินใส่เบอร์โทรใหม่ในหน้า “ผู้ใช้งาน” เพื่อรีเซ็ต'}</p>
+   ${inp('cur','รหัสผ่านปัจจุบัน (เบอร์โทร)','type="password" required autocomplete="current-password"')}
+   ${inp('nw','รหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)','type="password" required minlength="6" autocomplete="new-password"')}
+   ${inp('nw2','ยืนยันรหัสผ่านใหม่','type="password" required minlength="6" autocomplete="new-password"')}
+   <label class="row" style="gap:8px;font-size:14px"><input type="checkbox" id="pw-show"> แสดงรหัสผ่าน</label>
+   <div class="row"><button class="btn" type="submit">บันทึกรหัสผ่านใหม่</button><button class="btn ghost" type="button" id="pw-cancel">ยกเลิก</button></div><p class="muted" id="pwmsg"></p></form>`;
+  const f=$('#pwf'),msg=$('#pwmsg');
+  $('#pw-show').onchange=e=>f.querySelectorAll('input[type=password],input[data-pw]').forEach(i=>{i.dataset.pw=1;i.type=e.target.checked?'text':'password'});
+  $('#pw-cancel').onclick=()=>{st.pwView=false;renderStaff()};
+  f.onsubmit=async e=>{e.preventDefault();if(!f.checkValidity()){f.reportValidity();return}
+    const raw=f.cur.value.trim(),cur=/^[\d\s-]+$/.test(raw)?raw.replace(/\D/g,''):raw,nw=f.nw.value;
+    if(nw!==f.nw2.value){msg.textContent='รหัสผ่านใหม่ทั้งสองช่องไม่ตรงกัน';return}
+    if(nw.length<6){msg.textContent='รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร';return}
+    if(nw===cur){msg.textContent='รหัสผ่านใหม่ต้องไม่ซ้ำกับรหัสผ่านเดิม';return}
+    if(!adm&&!confirmTwice(f.querySelector('[type=submit]'),'กดอีกครั้งเพื่อยืนยัน (เปลี่ยนได้ครั้งเดียว)'))return;
+    msg.textContent='กำลังบันทึก…';
+    try{
+      if(S.mode==='fb')await S.changePw(cur,nw);else if(cur!=='0000'){msg.textContent='โหมดตัวอย่าง: รหัสผ่านปัจจุบันคือ 0000';return}
+      const o={pwChanged:true,pwAt:Date.now()};
+      try{await S.update('staff/'+st.me.id,o);Object.assign(meDoc(),o)}catch(err){console.warn(err);if(!adm)toast('เปลี่ยนรหัสผ่านแล้ว แต่บันทึกสถานะไม่สำเร็จ แจ้งแอดมินอัปเดต Firestore Rules')}
+      st.pwView=false;toast(S.mode==='fb'?'เปลี่ยนรหัสผ่านแล้ว ครั้งต่อไปให้เข้าระบบด้วยรหัสผ่านใหม่':'โหมดตัวอย่าง: บันทึกสถานะแล้ว (ไม่ได้เปลี่ยนรหัสจริง)');renderStaff()}
+    catch(err){const c=(err&&err.code)||'';msg.textContent=c.includes('invalid-credential')||c.includes('wrong-password')?'รหัสผ่านปัจจุบันไม่ถูกต้อง':c.includes('weak-password')?'รหัสผ่านใหม่ง่ายเกินไป ลองใช้อย่างน้อย 6 ตัวอักษร':c.includes('too-many-requests')?'ลองผิดหลายครั้ง รอสักครู่แล้วลองใหม่':'เปลี่ยนรหัสผ่านไม่สำเร็จ ลองออกจากระบบแล้วเข้าใหม่ก่อน'}};
+}
 const inboxLabel=()=>`แบบที่ผู้เรียนส่งมา (${['pt1','pt2','pt12','pt20'].reduce((n,t)=>n+visSubs(t).length,0)})`;
 /* realtime: new forms and course changes appear without refreshing */
 function startWatch(){
@@ -755,10 +790,14 @@ function tabCourses(){
   T.innerHTML=`<div class="kpis" style="margin-bottom:16px"><div class="kpi"><span>หลักสูตร</span><b>${cs.length}</b></div><div class="kpi"><span>ผู้สมัคร (พต.2)</span><b>${nApps}</b></div><div class="kpi"><span>ผู้ผ่านการฝึกอบรม</span><b>${nPass}</b></div><div class="kpi"><span>งบประมาณรวม (บาท)</span><b>${baht(bud)}</b></div></div>
   <div class="row" style="margin-bottom:12px"><h2 style="flex:1">หลักสูตรที่เปิดสอน</h2><button class="btn gold" id="c-add" type="button">+ เพิ่มหลักสูตร</button></div>
   ${cs.length?`<div class="tblwrap"><table class="t"><thead><tr><th>หลักสูตร</th><th>ศูนย์</th><th>วันที่</th><th class="n">ผู้สมัคร</th><th class="n">งบประมาณ</th><th>สถานะ</th><th></th></tr></thead><tbody>
-  ${cs.map(c=>{const [k,l]=statusOf(c);return `<tr><td><b>${esc(c.name)}</b><br><span class="muted">${esc(c.hours||'-')} ชม. · ${esc(c.trainerName||'ยังไม่ระบุวิทยากร')}</span></td><td>${esc(c.center)}</td><td>${thStamp(c.startDate?Date.parse(c.startDate):0)||'-'}${c.endDate?' – '+thStamp(Date.parse(c.endDate)):''}</td><td class="n">${appsOf(c).length}</td><td class="n">${baht(budgetTotal(c))}</td><td><span class="pill ${k}">${l}</span></td><td><button class="btn ghost sm" data-edit="${c.id}" type="button">แก้ไข/งบประมาณ</button></td></tr>`}).join('')}</tbody></table></div>`:`<div class="empty">ยังไม่มีหลักสูตร กด “เพิ่มหลักสูตร” เพื่อเปิดหลักสูตรแรกให้ผู้เรียนเลือกสมัคร</div>`}`;
+  ${cs.map(c=>{const [k,l]=statusOf(c);return `<tr><td><b>${esc(c.name)}</b><br><span class="muted">${esc(c.hours||'-')} ชม. · ${esc(c.trainerName||'ยังไม่ระบุวิทยากร')}</span></td><td>${esc(c.center)}</td><td>${thStamp(c.startDate?Date.parse(c.startDate):0)||'-'}${c.endDate?' – '+thStamp(Date.parse(c.endDate)):''}</td><td class="n">${appsOf(c).length}</td><td class="n">${baht(budgetTotal(c))}</td><td><span class="pill ${k}">${l}</span>${c.closed?'<br><span class="pill closed" style="margin-top:4px">ปิดหลักสูตรแล้ว</span>':''}</td><td><div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn ghost sm" data-edit="${c.id}" type="button">แก้ไข/งบประมาณ</button><button class="btn ${c.closed?'ghost':'danger'} sm" data-close="${c.id}" type="button">${c.closed?'เปิดหลักสูตรอีกครั้ง':'ปิดหลักสูตร'}</button></div></td></tr>`}).join('')}</tbody></table></div>`:`<div class="empty">ยังไม่มีหลักสูตร กด “เพิ่มหลักสูตร” เพื่อเปิดหลักสูตรแรกให้ผู้เรียนเลือกสมัคร</div>`}`;
   $('#c-add').onclick=()=>{st.editCourse={center:isAll()?(st.centerF||st.centers[0]||''):st.me.center,open:true,amphoe:st.org.district,province:st.org.province,format:'แบบรวมกลุ่ม',budget:{},surveyMethods:['สำรวจความต้องการ']};renderStaff()};
   $$('[data-edit]').forEach(b=>b.onclick=()=>{st.editCourse=JSON.parse(JSON.stringify(st.courses.find(c=>c.id===b.dataset.edit)));renderStaff()});
+  $$('[data-close]').forEach(b=>b.onclick=async()=>{const c=st.courses.find(x=>x.id===b.dataset.close);if(!c)return;const cl=!c.closed;
+    if(cl&&!confirmTwice(b,'กดอีกครั้งเพื่อปิด'))return;
+    const o=cl?{closed:true,open:false}:{closed:false};try{await S.update('courses/'+c.id,o);Object.assign(c,o);toast(cl?'ปิดหลักสูตรแล้ว ผู้เรียนส่ง พต.12 / พต.20 ไม่ได้':'เปิดหลักสูตรอีกครั้งแล้ว');renderStaff()}catch(e){toast('บันทึกไม่สำเร็จ')}});
 }
+function confirmTwice(b,msg){if(b.dataset.armed)return true;b.dataset.armed='1';const t=b.textContent;b.textContent=msg;setTimeout(()=>{if(b.isConnected){delete b.dataset.armed;b.textContent=t}},3000);return false}
 function courseEditor(){
   const c=st.editCourse,b=c.budget||{},T=$('#tabbody');
   T.innerHTML=`<form class="sheet stack" id="cform"><div class="row"><h2 style="flex:1">${c.id?'แก้ไขหลักสูตร':'เพิ่มหลักสูตรใหม่'}</h2><button class="btn ghost sm" type="button" id="c-cancel">ยกเลิก</button></div>
@@ -768,7 +807,8 @@ function courseEditor(){
    ${inp('format','รูปแบบ',`value="${esc(c.format||'')}"`)}<label class="f">ด้าน (ใช้ใน พต.10)<select name="area">${AREAS.map(([k,l])=>opt(k,c.area||'career',l)).join('')}</select></label>${inp('startDate','วันที่เริ่ม',`type="date" required value="${esc(c.startDate||'')}"`)}${inp('endDate','วันที่สิ้นสุด',`type="date" value="${esc(c.endDate||'')}"`)}
    <label class="f">ปีงบประมาณ<select name="fy">${st.years.list.map(y=>opt(y,String(c.fy||st.fy),'พ.ศ. '+y)).join('')}</select></label>
    ${inp('timeStart','เวลาเริ่มเรียน (น.)',`value="${esc(c.timeStart||'09.00')}" placeholder="09.00"`)}${inp('timeEnd','เวลาเลิกเรียน (น.)',`value="${esc(c.timeEnd||'16.00')}" placeholder="16.00"`)}
-   <label class="f openf">การรับสมัคร<select name="open" class="sel-open">${opt('1',c.open?'1':'0','เปิดรับสมัคร (แสดงในหน้าผู้เรียน)')}${opt('0',c.open?'1':'0','ปิดรับสมัคร')}</select></label></div></div>
+   <label class="f openf">การรับสมัคร<select name="open" class="sel-open">${opt('1',c.open?'1':'0','เปิดรับสมัคร (แสดงในหน้าผู้เรียน)')}${opt('0',c.open?'1':'0','ปิดรับสมัคร')}</select></label>
+   <label class="f">สถานะหลักสูตร<select name="closed">${opt('0',c.closed?'1':'0','เปิดใช้งาน (ผู้เรียนส่ง พต.12 / พต.20 ได้)')}${opt('1',c.closed?'1':'0','ปิดหลักสูตร (ผู้เรียนส่งแบบใด ๆ ไม่ได้)')}</select></label></div></div>
   <div class="sec"><legend>สถานที่จัด</legend><div class="grid">${inp('place','สถานที่จัด ณ',`value="${esc(c.place||'')}"`)}${inp('village','หมู่บ้าน/ชุมชน',`value="${esc(c.village||'')}"`)}${inp('moo','หมู่ที่',`value="${esc(c.moo||'')}"`)}${inp('tambon','ตำบล',`value="${esc(c.tambon||'')}"`)}${inp('amphoe','อำเภอ',`value="${esc(c.amphoe||'')}"`)}${inp('province','จังหวัด',`value="${esc(c.province||'')}"`)}</div></div>
   <div class="sec"><legend>วิทยากร</legend><div class="grid">${inp('trainerName','ชื่อวิทยากร',`value="${esc(c.trainerName||'')}"`)}${inp('trainerEdu','วุฒิการศึกษา',`value="${esc(c.trainerEdu||'')}"`)}${inp('trainerAge','อายุ',`type="number" value="${esc(c.trainerAge||'')}"`)}${inp('trainerJob','อาชีพ',`value="${esc(c.trainerJob||'')}"`)}</div></div>
   <div class="sec"><legend>งบประมาณ (บาท)</legend><div class="grid">${BUDGET.map(([k,l])=>inp('b_'+k,l,`type="number" min="0" step="0.01" value="${esc(b[k]||'')}"`)).join('')}${inp('budgetType','ประเภทงบ',`value="${esc(c.budgetType||'')}"`)}${inp('budgetCode','รหัสงบประมาณ',`value="${esc(c.budgetCode||'')}"`)}</div>
@@ -781,7 +821,7 @@ function courseEditor(){
   if($('#c-del'))armDelete($('#c-del'),async()=>{await S.del('courses/'+c.id);st.courses=st.courses.filter(x=>x.id!==c.id);st.editCourse=null;toast('ลบหลักสูตรแล้ว');renderStaff()});
   f.onsubmit=async e=>{e.preventDefault();if(!f.checkValidity()){f.reportValidity();return}
     const o=readForm(f),budget={};BUDGET.forEach(([k])=>{budget[k]=o['b_'+k];delete o['b_'+k]});
-    const n={...c,...o,center:isAll()?o.center:st.me.center,open:o.open==='1',budget};
+    const n={...c,...o,center:isAll()?o.center:st.me.center,open:o.open==='1'&&o.closed!=='1',closed:o.closed==='1',budget};
     if(!n.id){n.id=newId();n.ownerName=`${st.me.title||''}${st.me.first} ${st.me.last||''}`.trim();n.at=Date.now()}
     try{await S.set('courses/'+n.id,n);const i=st.courses.findIndex(x=>x.id===n.id);i>=0?st.courses[i]=n:st.courses.unshift(n);st.editCourse=null;st.courseId=n.id;toast('บันทึกหลักสูตรแล้ว');renderStaff()}catch(err){toast('บันทึกไม่สำเร็จ: บัญชีนี้อาจยังไม่มีสิทธิ์แก้ไข')}};
 }
@@ -1052,7 +1092,7 @@ function tabUsers(){
       if(!n.order)n.order=st.staff.length+1;
       try{const oldId=u.id,self=oldId&&oldId===st.me.id;
         if(S.mode==='fb'){
-          if(digits){const L=await createLogin(o.first,digits);n.id=L.uid;n.loginEmail=L.email;n.ph4=digits.slice(-4)}
+          if(digits){const L=await createLogin(o.first,digits);n.id=L.uid;n.loginEmail=L.email;n.ph4=digits.slice(-4);n.pwChanged=false;delete n.pwAt}
           else if(!n.id)n.id='nologin-'+newId();
           else if(u.first!==o.first&&n.loginEmail)await S.set('logins/'+await loginKey(o.first),{email:n.loginEmail});
           await S.set('staff/'+n.id,n);
@@ -1066,7 +1106,7 @@ function tabUsers(){
   T.innerHTML=`<div class="row" style="margin-bottom:12px"><h2 style="flex:1">ผู้ใช้งาน (${st.staff.length})</h2><label class="btn ghost" for="u-xlsx" style="cursor:pointer">นำเข้าจากไฟล์ Excel</label><input type="file" id="u-xlsx" accept=".xlsx,.xls" hidden><button class="btn gold" id="u-add" type="button">+ เพิ่มครู / แอดมิน</button></div>
   <p class="note" style="margin-bottom:12px">ไฟล์ Excel ใช้หัวตาราง: ที่ · คำนำหน้า · ชื่อ · สกุล · ตำแหน่ง · เบอร์โทร · E-mail · ตำบล รายการในช่อง “ตำบล” จะเป็นตัวเลือกศูนย์การเรียนรู้ในหน้าผู้เรียน ช่อง “ตำแหน่ง” จะแสดงใต้ลายมือชื่อในเอกสาร พต. (แอดมิน = แอดมิน, ผู้อำนวยการ/ครู = หัวหน้างาน)</p>
   <div class="tblwrap"><table class="t"><thead><tr><th>ชื่อผู้ใช้</th><th>ชื่อ – สกุล</th><th>ตำแหน่ง</th><th>บทบาท</th><th>ศูนย์การเรียนรู้</th><th>รหัสผ่าน</th><th></th></tr></thead><tbody>
-  ${st.staff.map(s=>`<tr><td><b>${esc(s.first)}</b></td><td>${esc(s.title||'')}${esc(s.first)} ${esc(s.last||'')}</td><td>${s.jobTitle?esc(s.jobTitle):`<span class="muted" title="ยังไม่ได้กำหนด ใช้ค่าเริ่มต้น">${esc(defaultJob(s)||'-')}</span>`}</td><td><span class="pill ${s.role==='teacher'?'closed':'role'}">${ROLES[s.role]||s.role}</span></td><td>${esc(s.center||(s.role==='teacher'?'-':'ทุกศูนย์'))}</td><td>${s.ph4?'เบอร์ลงท้าย '+esc(s.ph4):'<span class="pill fail">ยังไม่มีเบอร์</span>'}</td><td><button class="btn ghost sm" data-u="${s.id}" type="button">แก้ไข</button></td></tr>`).join('')}</tbody></table></div>`;
+  ${st.staff.map(s=>`<tr><td><b>${esc(s.first)}</b>${s.pwChanged?'<br><span class="pill closed" title="ครูเปลี่ยนรหัสผ่านเองแล้ว หากลืมให้ใส่เบอร์โทรใหม่เพื่อรีเซ็ต">เปลี่ยนรหัสแล้ว</span>':''}</td><td>${esc(s.title||'')}${esc(s.first)} ${esc(s.last||'')}</td><td>${s.jobTitle?esc(s.jobTitle):`<span class="muted" title="ยังไม่ได้กำหนด ใช้ค่าเริ่มต้น">${esc(defaultJob(s)||'-')}</span>`}</td><td><span class="pill ${s.role==='teacher'?'closed':'role'}">${ROLES[s.role]||s.role}</span></td><td>${esc(s.center||(s.role==='teacher'?'-':'ทุกศูนย์'))}</td><td>${s.ph4?'เบอร์ลงท้าย '+esc(s.ph4):'<span class="pill fail">ยังไม่มีเบอร์</span>'}</td><td><button class="btn ghost sm" data-u="${s.id}" type="button">แก้ไข</button></td></tr>`).join('')}</tbody></table></div>`;
   $('#u-add').onclick=()=>{st.editUser={role:'teacher'};renderStaff()};
   $('#u-xlsx').onchange=async e=>{const f=e.target.files[0];if(f){try{await importExcel(f)}catch(err){toast('นำเข้าไม่สำเร็จ')}}};
   $$('[data-u]').forEach(b=>b.onclick=()=>{st.editUser={...st.staff.find(s=>s.id===b.dataset.u)};renderStaff()});
@@ -1086,7 +1126,7 @@ async function importExcel(file){
     let ph=String(r[ix('เบอร์โทร')]||'').replace(/\D/g,'');if(ph.length===9)ph='0'+ph;
     if(S.mode==='fb'){
       if(old.id===st.me.id){d.role=old.role} // never replace or demote the signed-in admin
-      else if(ph&&ph.length>=6&&(!old.id||old.id.startsWith('nologin-')||old.ph4!==ph.slice(-4))){toast(`กำลังสร้างบัญชี ${first} …`);const L=await createLogin(first,ph);d.id=L.uid;d.loginEmail=L.email;d.ph4=ph.slice(-4)}
+      else if(ph&&ph.length>=6&&(!old.id||old.id.startsWith('nologin-')||old.ph4!==ph.slice(-4))){toast(`กำลังสร้างบัญชี ${first} …`);const L=await createLogin(first,ph);d.id=L.uid;d.loginEmail=L.email;d.ph4=ph.slice(-4);d.pwChanged=false;delete d.pwAt}
       else if(!d.id)d.id='nologin-'+newId();
     }else{if(ph){d.ph=await phHash(ph);d.ph4=ph.slice(-4)}if(!d.id)d.id=newId()}
     await S.set('staff/'+d.id,d);if(old.id&&old.id!==d.id)await S.del('staff/'+old.id);
