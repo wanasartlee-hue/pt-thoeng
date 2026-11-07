@@ -275,6 +275,7 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
 .cert .line img{position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);height:72px;width:auto;max-width:88%;object-fit:contain;object-position:center bottom}
 .cert .line img.big{height:100px;max-width:100%;bottom:-12px}
 .cert .txt{line-height:1.35}
+
 /* print: only the open document, laid out exactly like the PDF */
 @media print{
   html,body{background:#fff!important}
@@ -497,6 +498,7 @@ async function loadPublic(){
   if(y&&Array.isArray(y.list)&&y.list.length)st.years={list:y.list.map(String).sort(),current:String(y.current||y.list[y.list.length-1])};if(!st.fy||!st.years.list.includes(st.fy))st.fy=st.years.current;
   st.centers=(c&&c.list)||[];st.cteach=(c&&c.teachers)||{};st.cpos=(c&&c.positions)||{};st.org={...ORG_DEFAULT,...(o||{})};await trimSigs();st.courses=cs.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
   $('#orgline').textContent=`${st.org.name} จังหวัด${st.org.province}`;
+  document.title='ส่งเสริมอาชีพ '+(st.org.short||st.org.name||'');
   $('#seal').innerHTML=st.org.logo?`<img alt="" src="${esc(st.org.logo)}">`:'สกร.';
 }
 async function loadStaffData(){
@@ -519,7 +521,7 @@ const opt=(v,sel,label)=>`<option value="${esc(v)}"${v===sel?' selected':''}>${e
 const chips=(name,list,type='checkbox',vals=[])=>`<div class="chips">${list.map(v=>`<label class="chip"><input type="${type}" name="${name}" value="${esc(v)}"${(Array.isArray(vals)?vals.includes(v):vals===v)?' checked':''}${type==='radio'&&list[0]===v?' required':''}>${esc(v)}</label>`).join('')}</div>`;
 const inp=(name,label,attrs='',cls='')=>`<label class="f ${cls}">${label}<input name="${name}" ${attrs}></label>`;
 const nameBlock=()=>`<div class="grid"><label class="f">คำนำหน้า<select name="title" required>${opt('','', '— เลือก —')}${['นาย','นาง','นางสาว'].map(v=>opt(v)).join('')}</select></label>${inp('first','ชื่อ','required')}${inp('last','นามสกุล','required')}</div>`;
-const addrBlock=()=>`<div class="grid">${inp('house','บ้านเลขที่')}${inp('moo','หมู่ที่')}${inp('village','หมู่บ้าน')}${inp('tambon','ตำบล/แขวง')}${inp('amphoe','อำเภอ','value="เทิง"')}${inp('province','จังหวัด','value="เชียงราย"')}${inp('zip','รหัสไปรษณีย์','inputmode="numeric" maxlength="5"')}${inp('phone','เบอร์โทรศัพท์','inputmode="tel" required')}</div>`;
+const addrBlock=()=>`<div class="grid">${inp('house','บ้านเลขที่')}${inp('moo','หมู่ที่')}${inp('village','หมู่บ้าน')}${inp('tambon','ตำบล/แขวง')}${inp('amphoe','อำเภอ',`value="${esc(st.org.district||'')}"`)}${inp('province','จังหวัด',`value="${esc(st.org.province||'')}"`)}${inp('zip','รหัสไปรษณีย์','inputmode="numeric" maxlength="5"')}${inp('phone','เบอร์โทรศัพท์','inputmode="tel" required')}</div>`;
 const eduSel=(req=true)=>`<label class="f">วุฒิการศึกษา<select name="edu" ${req?'required':''}>${opt('','','— เลือก —')}${EDU.map(v=>opt(v)).join('')}</select></label>`;
 
 function fPT1(){return `
@@ -1426,6 +1428,7 @@ $('#mpdf').onclick=async()=>{
   }catch(e){toast('สร้าง PDF ไม่สำเร็จ ลองอีกครั้ง')}
   finally{btn.disabled=false;btn.textContent='ดาวน์โหลด PDF'}
 };
+
 
 /* ================= boot ================= */
 (async()=>{
