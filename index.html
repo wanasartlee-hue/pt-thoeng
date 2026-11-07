@@ -398,7 +398,9 @@ const LOGIN_DOMAIN='staff.pt-platform.app'; // synthetic sign-in addresses; neve
 
 /* ================= store: Firestore, or this-browser demo when Firebase is not set ================= */
 const S={mode:'loading',F:null,fs:null,auth:null,user:null,mem:{},fbError:false,
-  async init(){
+  _ready:null,_go:null,ready(){if(!this._ready)this._ready=new Promise(r=>this._go=r);return this._ready},
+  async init(){try{await this._init()}finally{this.ready();this._go()}},
+  async _init(){
     this.demoAsked=new URLSearchParams(location.search).has('demo');
     if(!this.demoAsked&&FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.projectId){
       try{
@@ -412,17 +414,17 @@ const S={mode:'loading',F:null,fs:null,auth:null,user:null,mem:{},fbError:false,
   },
   _save(){try{localStorage.setItem(DEMO_KEY,JSON.stringify(this.mem))}catch(e){}},
   ref(p){return this.F.doc(this.fs,p)},
-  async get(p){if(this.mode==='fb'){const x=await this.F.getDoc(this.ref(p));return x.exists()?{id:x.id,...x.data()}:null}const v=this.mem[p];return v?{id:p.split('/').pop(),...v}:null},
-  async list(c,w){
+  async get(p){await this.ready();if(this.mode==='fb'){const x=await this.F.getDoc(this.ref(p));return x.exists()?{id:x.id,...x.data()}:null}const v=this.mem[p];return v?{id:p.split('/').pop(),...v}:null},
+  async list(c,w){await this.ready();
     if(this.mode==='fb'){const F=this.F,col=F.collection(this.fs,c);const q=w?F.query(col,F.where(w[0],'==',w[1])):col;const x=await F.getDocs(q);return x.docs.map(d=>({id:d.id,...d.data()}))}
     const pre=c+'/';let r=Object.keys(this.mem).filter(k=>k.startsWith(pre)&&!k.slice(pre.length).includes('/')).map(k=>({id:k.slice(pre.length),...this.mem[k]}));
     return w?r.filter(x=>x[w[0]]===w[1]):r},
-  async set(p,d){d=strip(d);if(this.mode==='fb')return this.F.setDoc(this.ref(p),d);this.mem[p]=d;this._save()},
-  async update(p,d){d=strip(d);if(this.mode==='fb')return this.F.updateDoc(this.ref(p),d);this.mem[p]={...(this.mem[p]||{}),...d};this._save()},
-  async del(p){if(this.mode==='fb')return this.F.deleteDoc(this.ref(p));delete this.mem[p];this._save()},
-  async merge(p,d){d=strip(d);if(this.mode==='fb')return this.F.setDoc(this.ref(p),d,{merge:true});const cur=this.mem[p]||{};this.mem[p]={...cur,...d,items:{...(cur.items||{}),...(d.items||{})}};this._save()},
+  async set(p,d){await this.ready();d=strip(d);if(this.mode==='fb')return this.F.setDoc(this.ref(p),d);this.mem[p]=d;this._save()},
+  async update(p,d){await this.ready();d=strip(d);if(this.mode==='fb')return this.F.updateDoc(this.ref(p),d);this.mem[p]={...(this.mem[p]||{}),...d};this._save()},
+  async del(p){await this.ready();if(this.mode==='fb')return this.F.deleteDoc(this.ref(p));delete this.mem[p];this._save()},
+  async merge(p,d){await this.ready();d=strip(d);if(this.mode==='fb')return this.F.setDoc(this.ref(p),d,{merge:true});const cur=this.mem[p]||{};this.mem[p]={...cur,...d,items:{...(cur.items||{}),...(d.items||{})}};this._save()},
   watch(c,w,cb){if(this.mode!=='fb')return()=>{};const F=this.F,col=F.collection(this.fs,c);const q=w?F.query(col,F.where(w[0],'==',w[1])):col;return F.onSnapshot(q,x=>cb(x.docs.map(d=>({id:d.id,...d.data()}))),e=>console.warn('watch',c,e))},
-  async add(c,d){d=strip(d);if(this.mode==='fb'){const r=await this.F.addDoc(this.F.collection(this.fs,c),d);return r.id}const id=newId();this.mem[c+'/'+id]=d;this._save();return id},
+  async add(c,d){await this.ready();d=strip(d);if(this.mode==='fb'){const r=await this.F.addDoc(this.F.collection(this.fs,c),d);return r.id}const id=newId();this.mem[c+'/'+id]=d;this._save();return id},
   // accounts (Firebase Authentication, email + password where the password is the phone number)
   async signIn(email,pw){return this.F.signInWithEmailAndPassword(this.auth,email,pw)},
   async signOut(){if(this.mode==='fb')await this.F.signOut(this.auth)},
@@ -493,13 +495,31 @@ function trimImg(src){return new Promise(res=>{const im=new Image();im.onload=()
   if(x1<0||(x0<=2&&y0<=2&&x1>=cv.width-3&&y1>=cv.height-3))return res(src);const p=4;x0=Math.max(0,x0-p);y0=Math.max(0,y0-p);x1=Math.min(cv.width-1,x1+p);y1=Math.min(cv.height-1,y1+p);
   const o=document.createElement('canvas');o.width=x1-x0+1;o.height=y1-y0+1;o.getContext('2d').drawImage(cv,x0,y0,o.width,o.height,0,0,o.width,o.height);res(o.toDataURL('image/png'))}catch(e){res(src)}};im.onerror=()=>res(src);im.src=src})}
 async function trimSigs(){for(const k of ['sigReg','sigDir']){if(st.org[k]&&!(st._trim||{})[k+st.org[k].length]){const t=await trimImg(st.org[k]);st._trim={...(st._trim||{}),[k+t.length]:1};st.org[k]=t}}}
-async function loadPublic(){
+/* public data (centers, organisation, courses) is remembered in this browser so the page opens at once; fresh data replaces it a moment later */
+const PUB_KEY='pt-pub-v1:'+(FIREBASE_CONFIG.projectId||'');
+const useCache=()=>!!(FIREBASE_CONFIG.apiKey&&FIREBASE_CONFIG.projectId)&&!new URLSearchParams(location.search).has('demo');
+function pubLoad(){if(!useCache())return null;try{return JSON.parse(localStorage.getItem(PUB_KEY)||'null')}catch(e){return null}}
+function pubSave(p){if(!useCache()||S.mode!=='fb')return;try{localStorage.setItem(PUB_KEY,JSON.stringify(p))}catch(e){try{localStorage.removeItem(PUB_KEY)}catch(_){}}}
+async function fetchPublic(){
   const [c,o,cs,y]=await Promise.all([S.get('meta/centers'),S.get('meta/org'),S.list('courses'),S.get('meta/years').catch(()=>null)]);
+  // leftover activity photos from the removed infographic builder are large; drop them from the copy kept here
+  return{c,o,y,cs:cs.map(x=>{if(!x.igPhotos)return x;const {igPhotos,...r}=x;return r}),heavy:cs.filter(x=>x.igPhotos&&x.igPhotos.length).map(x=>x.id)};
+}
+async function loadPublic(){const p=await fetchPublic();const heavy=p.heavy;delete p.heavy;await applyPublic(p);pubSave(p);
+  if(S.mode==='fb'&&st.me&&isAll()&&heavy.length)heavy.forEach(id=>S.update('courses/'+id,{igPhotos:null}).catch(()=>{}));
+  return p}
+async function applyPublic({c,o,cs,y}){
   if(y&&Array.isArray(y.list)&&y.list.length)st.years={list:y.list.map(String).sort(),current:String(y.current||y.list[y.list.length-1])};if(!st.fy||!st.years.list.includes(st.fy))st.fy=st.years.current;
   st.centers=(c&&c.list)||[];st.cteach=(c&&c.teachers)||{};st.cpos=(c&&c.positions)||{};st.org={...ORG_DEFAULT,...(o||{})};await trimSigs();st.courses=cs.sort((a,b)=>(b.startDate||'').localeCompare(a.startDate||''));
   $('#orgline').textContent=`${st.org.name} จังหวัด${st.org.province}`;
   document.title='ส่งเสริมอาชีพ '+(st.org.short||st.org.name||'');
   $('#seal').innerHTML=st.org.logo?`<img alt="" src="${esc(st.org.logo)}">`:'สกร.';
+}
+function softRender(){
+  if(st.page==='staff'){liveRefresh();return}
+  const a=document.activeElement;if(a&&a.closest&&a.closest('#app')&&/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))return; // someone is filling a form: keep it, new data shows on the next step
+  if(document.querySelector('#app form input:not([type=hidden]):not([type=radio]):not([type=checkbox])')&&[...document.querySelectorAll('#app form input:not([type=hidden]):not([type=radio]):not([type=checkbox]),#app form textarea')].some(i=>i.value&&i.defaultValue!==i.value))return;
+  const y=window.scrollY;render();window.scrollTo(0,y);
 }
 async function loadStaffData(){
   const [staff,subs]=await Promise.all([S.list('staff'),isAll()?S.list('subs'):S.list('subs',['center',st.me.center])]);
@@ -1432,10 +1452,15 @@ $('#mpdf').onclick=async()=>{
 
 /* ================= boot ================= */
 (async()=>{
+  const cached=pubLoad();let shown=false;
+  if(cached){try{await applyPublic(cached);if(location.hash!=='#staff'){route();shown=true}}catch(e){console.warn(e)}}
   await S.init();
   if(S.mode==='fb'){st.me=null;if(S.user){try{const m=await S.get('staff/'+S.user.uid);if(m)st.me={id:m.id,title:m.title,first:m.first,last:m.last,role:m.role,center:m.center||''}}catch(e){}}}
-  try{await loadPublic()}catch(e){}
-  route();
+  if(cached){
+    if(!shown)route();
+    const before=JSON.stringify(cached);
+    loadPublic().then(p=>{if(JSON.stringify(p)!==before)softRender()}).catch(e=>console.warn(e));
+  }else{try{await loadPublic()}catch(e){}route()}
 })();
 </script>
 </body>
