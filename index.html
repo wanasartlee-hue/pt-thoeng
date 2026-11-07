@@ -1333,7 +1333,7 @@ function courseDays(c){if(!c.startDate)return[];const out=[],d=new Date(c.startD
   while(d<=e&&g++<90){out.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);d.setDate(d.getDate()+1)}return out}
 function pt9Head(c,v){const days=courseDays(c),n=appsOf(c).length,range=shortRange(days[0],days[days.length-1]);
   const sub=v==='a'?'(การประกอบอาชีพและพัฒนาอาชีพ)':v==='b'?'(การพัฒนาทักษะชีวิต การพัฒนาสังคมและชุมชน)':'';
-  return `<div class="p9"><div class="hd"><b class="box">แบบ พต. 9</b></div><h2>${v==='t'?'บัญชีลงเวลาของวิทยากร':'บัญชีลงเวลาของผู้เข้ารับการฝึกอบรม'}</h2>${sub?`<p class="ctr"><b>${sub}</b></p>`:''}
+  return `<div class="p9"><div class="hd"><b>แบบ พต. 9</b></div><h2>${v==='t'?'บัญชีลงเวลาของวิทยากร':'บัญชีลงเวลาของผู้เข้ารับการฝึกอบรม'}</h2>${sub?`<p class="ctr"><b>${sub}</b></p>`:''}
   ${ln('โครงการ/หลักสูตร',[c.name],'จำนวน',[c.hours,50],'ชั่วโมง')}
   ${v==='a'?ln('วิทยากร',[c.trainerName],'จำนวนผู้เรียน',[n,50],'คน'):ln('จำนวนผู้เรียน',[n,60],'คน')}
   ${ln('ระหว่างวันที่',[range,0,1],'เวลา',[(c.timeStart||'........')+' – '+(c.timeEnd||'........')+' น.',0,1])}
