@@ -338,6 +338,7 @@ const D=(v,w)=>`<span class="d" style="min-width:${w||60}px">${esc(v)||'&nbsp;'}
 const CB=(on,label)=>`<span style="white-space:nowrap"><span class="cb${on?' on':''}"></span>${esc(label)}</span> `;
 const cname=s=>String(s||'').replace(/\s*\(ครู[^)]*\)\s*$/,'').trim();
 const thFull=t=>t?new Date(t).toLocaleDateString('th-TH',{day:'numeric',month:'long',year:'numeric'}):'';
+const applyText=d=>d.applyD&&d.applyM&&d.applyY?`${num(d.applyD)} ${TH_MONTHS[num(d.applyM)-1]} ${d.applyY}`:thFull(d.at);
 const teacherPosOf=c=>(st.cpos||{})[c]||('ครู '+cname(c));
 const defaultJob=s=>(s.role==='teacher'||(s.role==='admin'&&s.center))?('ครู '+cname(s.center||'')):s.role==='supervisor'?'หัวหน้างานการเรียนรู้เพื่อคุณวุฒิตามระดับ':'';
 const jobOf=s=>(s&&(s.jobTitle||defaultJob(s)))||'';
@@ -557,7 +558,13 @@ function fPT1(){return `
 <div class="sec"><legend>ส่วนที่ 3 จุดมุ่งหมายในการเรียนรู้ (เลือกได้มากกว่า 1 ข้อ)</legend>${chips('goals',GOALS)}${inp('goalOther','อื่น ๆ (โปรดระบุ)')}</div>`}
 
 function fPT2(){const days=Array.from({length:31},(_,i)=>i+1),months=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'],years=Array.from({length:90},(_,i)=>BE-10-i);
+const now=new Date(),ay=[BE,BE-1];
 return `
+<div class="sec"><legend>วันที่สมัครเรียน</legend><div class="grid">
+ <label class="f">วันที่<select name="applyD" required>${days.map(d=>opt(String(d),String(now.getDate()))).join('')}</select></label>
+ <label class="f">เดือน<select name="applyM" required>${TH_MONTHS.map((m,i)=>opt(String(i+1),String(now.getMonth()+1),m)).join('')}</select></label>
+ <label class="f">พ.ศ.<select name="applyY" required>${ay.map(y=>opt(String(y),String(BE))).join('')}</select></label></div>
+ <p class="muted" style="margin:4px 0 0">ตั้งเป็นวันนี้ไว้ให้แล้ว หากสมัครย้อนหลังให้เลือกวันที่สมัครจริง (ใช้เป็นวันที่ใต้ลายมือชื่อในใบสมัคร)</p></div>
 <div class="sec"><legend>1. ข้อมูลส่วนตัว</legend>${nameBlock()}
  <div class="grid">${inp('idcard','เลขบัตรประชาชน/หนังสือเดินทาง','required inputmode="numeric" maxlength="20"')}
  <label class="f">วันเกิด<select name="birthD" required>${opt('','','วัน')}${days.map(d=>opt(String(d))).join('')}</select></label>
@@ -647,6 +654,9 @@ async function submitLearner(e){
   e.preventDefault();const f=e.target,L=st.lc;
   if(!f.checkValidity()){f.reportValidity();return}
   if(L.form==='pt2'&&!/^[0-9A-Za-z-]{6,20}$/.test(f.elements.idcard.value.replace(/\s/g,''))){toast('เลขบัตรประชาชนไม่ถูกต้อง');return}
+  if(L.form==='pt2'&&f.elements.applyD){const ad=new Date(num(f.elements.applyY.value)-543,num(f.elements.applyM.value)-1,num(f.elements.applyD.value));
+    if(ad.getDate()!==num(f.elements.applyD.value)){toast('วันที่สมัครไม่ถูกต้อง (ไม่มีวันนี้ในเดือนที่เลือก)');return}
+    if(ad>new Date()){toast('วันที่สมัครต้องไม่เกินวันนี้');return}}
   const c=st.courses.find(x=>x.id===L.course);
   if(c&&c.closed){toast('หลักสูตรนี้ปิดแล้ว ไม่สามารถส่งแบบได้');return}
   if(c&&(L.form==='pt12'||L.form==='pt20')&&!evalOpen(c)){toast('ยังไม่ถึงช่วงทำแบบนี้ ทำได้ตั้งแต่วันสุดท้ายของการอบรม');return}
@@ -1284,7 +1294,7 @@ const DOCS={
   <div class="avoid"><h4>5. กลุ่มเป้าหมาย</h4>${opts(TARGETS.slice(0,-1),v=>d.target===v,4,[d.target==='อื่น ๆ'?(d.targetOther||' '):''])}</div>
   <div class="avoid"><h4>6. วิธีการเรียนรู้</h4>${opts(['แบบรวมกลุ่ม','แบบรายบุคคล โปรดระบุ'],v=>v.startsWith(d.method||'-'),2)}<div class="ind" style="padding-left:48px">${ln('สถานที่/ช่องทางการเรียนรู้ของตน',[d.method==='แบบรายบุคคล'?d.methodPlace:''])}${ln('ชื่อหลักสูตร',[d.method==='แบบรายบุคคล'?c.name:''])}</div></div>
   ${ln('<b>7. ท่านได้รับข่าวสารการรับสมัครจาก</b>',[d.news])}
-  ${sigPair({role:'ผู้สมัคร',name:fullName(d),x:['','วันที่ '+thFull(d.at)]},{role:'ผู้รับสมัคร',name:teacherOf(d.center),x:['ตำแหน่ง '+esc(teacherPosOf(d.center)),'วันที่ '+thFull(d.at)]})}
+  ${sigPair({role:'ผู้สมัคร',name:fullName(d),x:['','วันที่ '+applyText(d)]},{role:'ผู้รับสมัคร',name:teacherOf(d.center),x:['ตำแหน่ง '+esc(teacherPosOf(d.center)),'วันที่ '+applyText(d)]})}
   <p class="note">หมายเหตุ 1. หน่วยจัดการเรียนรู้สามารถปรับเปลี่ยนได้ตามความเหมาะสม<br>2. ในกรณีต่างด้าว ต้องมีใบอนุญาตการทำงาน (Work Permit) / หนังสือเดินทาง (passport) หรือเอกสารอื่นที่ทางราชการออกให้ จึงจะสามารถสมัครเรียนได้</p>`},
  pt8:c=>{const A=appsOf(c);return `<div class="hd"><b>แบบ พต. 8</b></div><h2>บัญชีรายชื่อผู้สมัครเรียนหลักสูตรการฝึกอบรม</h2><p class="ctr"><b>${esc(st.org.name)} จังหวัด${esc(st.org.province)}</b><br>${esc(cname(c.center))}</p>${courseHead(c)}
   <table class="rep" style="table-layout:fixed"><colgroup><col style="width:5%"><col style="width:20%"><col style="width:19%"><col style="width:6%"><col style="width:12%"><col style="width:9%"><col style="width:20%"><col style="width:9%"></colgroup><thead><tr><th>ที่</th><th>ชื่อ-สกุล</th><th>เลขบัตรประชาชน</th><th>อายุ</th><th>วุฒิการศึกษา</th><th>อาชีพ</th><th>ที่อยู่ปัจจุบัน</th><th>หมายเหตุ</th></tr></thead><tbody>
