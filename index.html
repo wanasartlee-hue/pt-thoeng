@@ -1277,7 +1277,7 @@ const DOCS={
   return `<div class="hd"><b>แบบ พต. 2</b><br>เลขที่ ${idx>=0?idx+1:'..........'}</div>
   <h2>ใบสมัครผู้เรียนหลักสูตรการจัดการเรียนรู้เพื่อการพัฒนาตนเอง</h2><p class="ctr"><b>${esc(st.org.name)}</b></p><p class="ctr">กรมส่งเสริมการเรียนรู้ กระทรวงศึกษาธิการ</p><div class="gap"></div>
   ${ln('หลักสูตร/กิจกรรม',[c.name])}
-  ${ln('จำนวน',[c.hours,90],'ชั่วโมง')}
+  ${ln('จำนวน',[c.hours,60,1],'ชั่วโมง ระหว่างวันที่',[rangeTh(c.startDate,c.endDate)])}
   ${ln('สถานที่อบรม',[cname(d.center)])}
   <h4>1. ข้อมูลส่วนตัว (กรุณากรอกข้อมูลด้วยตัวบรรจง)</h4><div class="ind">
   ${ln('ชื่อ-นามสกุล (นาย/นาง/นางสาว)',[fullName(d)])}
@@ -1349,6 +1349,8 @@ const DOCS={
  fysum:({fy,cs,type,area})=>fySumDoc(fy,cs,type,area)
 };
 const TH_MONTHS=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+function rangeTh(a,b){if(!a)return '';const P=x=>{const [y,m,d]=x.split('-').map(Number);return{d,m:TH_MONTHS[m-1],y:y+543}},s=P(a);if(!b||b===a)return `${s.d} ${s.m} ${s.y}`;const e=P(b);
+  return s.y!==e.y?`${s.d} ${s.m} ${s.y} – ${e.d} ${e.m} ${e.y}`:s.m!==e.m?`${s.d} ${s.m} – ${e.d} ${e.m} ${e.y}`:`${s.d} – ${e.d} ${s.m} ${s.y}`}
 function certPeriod(a,b){if(!a)return 'ระหว่างวันที่ ........ เดือน ................ พ.ศ. ........';const P=x=>{const [y,m,d]=x.split('-').map(Number);return{d,m:TH_MONTHS[m-1],y:y+543}};const s=P(a),e=P(b||a);
   if(!b||a===b)return `ระหว่างวันที่ ${s.d} เดือน ${s.m} พ.ศ. ${s.y}`;
   if(s.m===e.m&&s.y===e.y)return `ระหว่างวันที่ ${s.d} – ${e.d} เดือน ${s.m} พ.ศ. ${s.y}`;
