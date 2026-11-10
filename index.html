@@ -276,6 +276,11 @@ table.t input{padding:4px 6px;width:70px;text-align:right}
 .cert .line img.big{height:100px;max-width:100%;bottom:-12px}
 .cert .txt{line-height:1.35}
 
+/* dropdown lists: alternate white / light purple rows so each line is easy to follow */
+select option{background:#fff;color:#2a1648}
+select option:nth-child(even){background:#efe6fb}
+select option:checked{background:#5b2ea0;color:#fff}
+select option:disabled{color:#9a90ad}
 /* print: only the open document, laid out exactly like the PDF */
 @media print{
   html,body{background:#fff!important}
